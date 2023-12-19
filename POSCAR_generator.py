@@ -90,7 +90,7 @@ def generate_poscar_files(alloy):
     polymorphs = {'FCC':'FCC_32atom_template.txt', 'BCC':'BCC_32atom_template.txt'}
 
     for crystal, filepath in polymorphs.items():
-        make_vasp(alloy, mol_fractions, filepath, f'{alloy}_{crystal}.txt')
+        make_vasp(alloy, mol_fractions, filepath, f'{alloy}_{crystal}.vasp')
 
 
 if __name__ == '__main__':
