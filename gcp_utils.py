@@ -1,11 +1,8 @@
 # standard imports
 import os
-import uuid
-import json
 import logging
 import glob
 import posixpath
-import requests
 
 
 # import 3rd party libraries
