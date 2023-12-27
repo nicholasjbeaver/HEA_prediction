@@ -77,8 +77,9 @@ def make_vasp(alloy, element_mol_fraction, filepath, output_file):
         file.writelines(lines)
 
     print(f"File modified and saved as {output_file}")
+    return output_file
 
-def generate_poscar_files(alloy):
+def generate_poscar_files(alloy, crystal):
     """
     Generate POSCAR files for a given alloy.
 
@@ -87,13 +88,17 @@ def generate_poscar_files(alloy):
     returns: none (writes to file)
     """
     mol_fractions = find_mole_fractions(alloy)
-    polymorphs = {'FCC':'FCC_32atom_template.txt', 'BCC':'BCC_32atom_template.txt'}
 
-    for crystal, filepath in polymorphs.items():
-        make_vasp(alloy, mol_fractions, filepath, f'vasp_files_temp/{alloy}_{crystal}.vasp')
+    if crystal == 'FCC':
+        filepath = 'FCC_32atom_template.txt'
+    elif crystal == 'BCC':
+        filepath = 'BCC_32atom_template.txt'
 
+    output_file = make_vasp(alloy, mol_fractions, filepath, f'vasp_files_temp/{alloy}_{crystal}.vasp')
+    return output_file
 
 if __name__ == '__main__':
     alloys = ['AlFe0.2CrCuCo', 'Al0.1Fe0.3Cr0.1Ti', 'AlFeTiVZrCuNiC']
     for alloy in alloys:
-        generate_poscar_files(alloy)
+        generate_poscar_files(alloy, 'FCC')
+        generate_poscar_files(alloy, 'BCC')
