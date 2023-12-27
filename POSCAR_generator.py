@@ -111,5 +111,6 @@ def generate_poscar_files(alloy, crystal):
 if __name__ == '__main__':
     alloys = ['AlFe0.2CrCuCo', 'Al0.1Fe0.3Cr0.1Ti', 'AlFeTiVZrCuNiC']
     for alloy in alloys:
-        generate_poscar_files(alloy, 'FCC')
-        generate_poscar_files(alloy, 'BCC')
+        test = generate_poscar_files(alloy, 'FCC')
+        print(test)
+        

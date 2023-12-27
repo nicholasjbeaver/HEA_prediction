@@ -1,5 +1,7 @@
 from POSCAR_generator import generate_poscar_files
 from dataclasses import dataclass
+from typing import List
+
 
 @dataclass
 class input_message:    
@@ -10,7 +12,7 @@ class input_message:
 class output_message:
     alloy: str
     crystal: str
-    poscar_file: str
+    poscar_file: List[str]
 
 def process_message(message):
     alloy = message.alloy
@@ -23,6 +25,4 @@ if __name__ == "__main__":
     crystal = 'FCC'
     message = input_message(alloy, crystal)
     output = process_message(message)
-    print(f"Alloy: {output.alloy}")
-    print(f"Crystal: {output.crystal}")
-    print(f"POSCAR file: {output.poscar_file}")
+    print(output)
