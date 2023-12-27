@@ -21,8 +21,11 @@ def process_message(message):
     return output_message(alloy, crystal, poscar)
 
 if __name__ == "__main__":
-    alloy = 'AlFe'
-    crystal = 'FCC'
-    message = input_message(alloy, crystal)
-    output = process_message(message)
-    print(output)
+    test_dict ={'AlFe': 'FCC', 'AlFe3': 'BCC', 'Al2Fe': 'FCC'}
+    
+    for alloy, crystal in test_dict.items():
+        alloy = alloy
+        crystal = crystal
+        message = input_message(alloy, crystal)
+        output = process_message(message)
+        print(output)
