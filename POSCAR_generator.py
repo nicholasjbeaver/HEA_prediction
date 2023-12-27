@@ -34,6 +34,18 @@ def find_mole_fractions(input_string):
 
     return mol_fractions
 
+
+
+def write_vasp(lines, output_file):
+    # Write the modified content to a new file
+    with open(output_file, 'w') as file:
+        file.writelines(lines)
+
+    print(f"File modified and saved as {output_file}")
+    return output_file
+
+
+
 def make_vasp(alloy, element_mol_fraction, filepath, output_file):
     """
     Generate a POSCAR file for a given alloy.
@@ -71,13 +83,12 @@ def make_vasp(alloy, element_mol_fraction, filepath, output_file):
     # Insert the num_atoms list into line 7
     num_atoms_line = ' '.join(str(element_atom_count[element]) for element in element_mol_fraction.keys()) + '\n'
     lines[6] = num_atoms_line
+    
+    write_vasp(lines, output_file)
+    
+    return lines
 
-    # Write the modified content to a new file
-    with open(output_file, 'w') as file:
-        file.writelines(lines)
-
-    print(f"File modified and saved as {output_file}")
-    return output_file
+    
 
 def generate_poscar_files(alloy, crystal):
     """
