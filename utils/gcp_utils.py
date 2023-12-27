@@ -38,7 +38,10 @@ def parse_gs_url(gs_url):
             return bucket_name, object_path
 
     raise ValueError("Invalid gs:// URL")
-def load_text_file (filename):
+    return None
+
+# function to load a text file from GCS or local file system
+def load_gcs_text_file (filename):
     """Loads a text file from GCS or local file system.
 
     Args:
@@ -47,19 +50,12 @@ def load_text_file (filename):
     Returns: text (str): Text from the file.
     """
 
-    # if using GCS, need to download the file from GCS first
-    if config.USING_GCS:
-        # download the file from GCS
-        gcs_client = storage.Client()
-        bucket_name , blob_path = parse_gs_url(filename)
-        bucket = gcs_client.get_bucket(bucket_name)
-        blob = bucket.blob(blob_path)
-        text = blob.download_as_text()
-    else:
-        # load the file from the local file system
-        with open(filename, 'r') as f:
-            text = f.read()
-
+    # download the file from GCS
+    gcs_client = storage.Client()
+    bucket_name , blob_path = parse_gs_url(filename)
+    bucket = gcs_client.get_bucket(bucket_name)
+    blob = bucket.blob(blob_path)
+    text = blob.download_as_text()
     return text
 
 def write_text_file (filename, text):
@@ -153,8 +149,6 @@ def get_file_from_repo(input_file_name, destination_dir):
         logging.error(f'File {destination_file} does not exist in GCS.')
         raise e
 
-
-
     return destination_file
 
 
@@ -239,14 +233,6 @@ if __name__ == '__main__':
             file_extension = '.txt'
             files_to_process = get_files_to_process(input_dir, file_extension)
             print(files_to_process)
-        except Exception as e:
-            print(f"Error: {e}")
-
-    # test getting a unique identifier
-    if True:
-        try:
-            unique_identifier = get_unique_identifier()
-            print(unique_identifier)
         except Exception as e:
             print(f"Error: {e}")
 
