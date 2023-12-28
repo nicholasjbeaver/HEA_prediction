@@ -21,7 +21,7 @@ def process_message(message):
     alloy = message.alloy
     crystal = message.crystal    
     poscar = generate_poscar_files(alloy, crystal)
-    vasp_file = write_vasp(poscar, f'vasp_files_temp/{alloy}_{crystal}.txt')
+    vasp_file = write_vasp(poscar, f'vasp_files_temp/{alloy}_{crystal}.vasp')
     energy = calculate_energy(vasp_file)
 
     return output_message(alloy, crystal, energy, poscar)
