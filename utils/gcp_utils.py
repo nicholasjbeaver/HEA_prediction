@@ -4,8 +4,6 @@ import logging
 import glob
 import posixpath
 
-
-
 # import 3rd party libraries
 from google.cloud import storage  # used for GCS'
 
