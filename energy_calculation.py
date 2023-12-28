@@ -83,7 +83,7 @@ def energy_per_atom(atoms):
     PE, fs = ff.unrelaxed_atoms()
 
     energy_per_atom = PE/num_atoms
-    print(energy_per_atom)
+    #print(energy_per_atom)
     return energy_per_atom
 
 
