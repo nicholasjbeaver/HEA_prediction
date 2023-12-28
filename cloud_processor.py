@@ -1,4 +1,5 @@
-from POSCAR_generator import generate_poscar_files
+from POSCAR_generator import generate_poscar_files, write_vasp
+from energy_calculation import calculate_energy
 from dataclasses import dataclass
 from typing import List
 
@@ -12,13 +13,18 @@ class input_message:
 class output_message:
     alloy: str
     crystal: str
+    energy: float
     poscar_file: List[str]
 
 def process_message(message):
+
     alloy = message.alloy
-    crystal = message.crystal
+    crystal = message.crystal    
     poscar = generate_poscar_files(alloy, crystal)
-    return output_message(alloy, crystal, poscar)
+    vasp_file = write_vasp(poscar, f'vasp_files_temp/{alloy}_{crystal}.txt')
+    energy = calculate_energy(vasp_file)
+
+    return output_message(alloy, crystal, energy, poscar)
 
 if __name__ == "__main__":
     test_dict ={'AlFe': 'FCC', 'AlFe3': 'BCC', 'Al2Fe': 'FCC'}

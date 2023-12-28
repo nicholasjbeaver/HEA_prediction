@@ -84,7 +84,7 @@ def make_vasp(alloy, element_mol_fraction, filepath, output_file):
     num_atoms_line = ' '.join(str(element_atom_count[element]) for element in element_mol_fraction.keys()) + '\n'
     lines[6] = num_atoms_line
     
-    write_vasp(lines, output_file)
+    #write_vasp(lines, output_file)
     
     return lines
 
