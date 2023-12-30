@@ -19,7 +19,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))) 
 import pubsub
 
 # set the logging level to always be DEBUG in this module
-logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.INFO)
 
 # TODO:
 # 1. set subscription timeout so it will go away if not used
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     sub_topic_id = publish_topic  # will read from the same topic as published  
 
     logging.info(f"Creating a subscription for topic: {sub_topic_id}")
-    subscription_id = pubsub.subscription(topic_id=sub_topic_id, **attributes)
+    subscription_id = pubsub.subscription(topic_id=sub_topic_id, subscription_id="testing_sub", **attributes)
 
     logging.debug(f'Created a subscription: {subscription_id}')
     pubsub.delete_when_done(name=subscription_id)
