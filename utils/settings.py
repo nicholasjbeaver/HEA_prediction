@@ -221,37 +221,13 @@ GOOGLE_COMPUTE_REGION = LazySetting(
     "GOOGLE_COMPUTE_REGION", default="us-central1", not_secret=True,
     thread_safe=True)
 
-GOOGLE_FIRESTORE_COLLECTION = LazySetting(
-    "GOOGLE_FIRESTORE_COLLECTION", default=CKBASE, local_only=SKIP_GCP,
-    not_secret=True, thread_safe=True)
-
 GOOGLE_PUBSUB_TOPIC = LazySetting(
-    "GOOGLE_PUBSUB_TOPIC", default=CKBASE+"_ingest_status",
+    "GOOGLE_PUBSUB_TOPIC", default="prediction_topic",
     local_only=SKIP_GCP, not_secret=True, thread_safe=True)
-
-GOOGLE_PUBSUB_TOPIC_INGEST = LazySetting(
-    "GOOGLE_PUBSUB_TOPIC_INGEST", default=CKBASE+"_ingest", local_only=SKIP_GCP,
-    not_secret=True, thread_safe=True)
 
 #
 # APP SETTINGS
 #
-CHAT_METHOD = LazySetting("CHAT_METHOD", default="chat_completion",
-                          not_secret=True)
-
-CONVERSATION_LIMIT = LazySetting("CONVERSATION_LIMIT", default=100,
-                                 not_secret=True)
-
-CORPUS_ID = LazySetting("CORPUS_ID", not_secret=True, local_only=True)
-
-ENV_ICON_MAP = {
-    "dev": "📕",
-    "prod": "📘",
-    "test": "📗",
-}
-
-ENV_ICON = LazySetting("ENV_ICON", default=ENV_ICON_MAP.get(ENV.lower(), "📙"),
-                       not_secret=True, local_only=SKIP_GCP, thread_safe=True)
 
 GUNICORN_TIMEOUT = LazySetting(
     "GUNICORN_TIMEOUT", default="300", not_secret=True, local_only=True,
@@ -278,62 +254,12 @@ MAX_CONTENT_MB = LazySetting(
     "MAX_CONTENT_MB", default="50", not_secret=True, local_only=True,
     thread_safe=True)
 
-MAX_SHARDS_PER_CONTENT = LazySetting(
-    "MAX_SHARDS_PER_CONTENT", default="1000", not_secret=True, local_only=True,
-    thread_safe=True)
-
-OPENAI_API_KEY = LazySetting("OPENAI_API_KEY", thread_safe=True)
-
-OPENAI_ORGANIZATION = LazySetting("OPENAI_ORGANIZATION",
-                                  default="", thread_safe=True)
-
-OPENAI_DEFAULT_MODEL = LazySetting(
-    "OPENAI_DEFAULT_MODEL", default="gpt-3.5-turbo", not_secret=True,
-    thread_safe=True)
-
-OPENAI_EMBEDDING_MODEL = LazySetting(
-    "OPENAI_EMBEDDING_MODEL", default="text-embedding-ada-002", not_secret=True,
-    thread_safe=True)
-
-OPENAI_SUMMARY_MODEL = LazySetting(
-    "OPENAI_SUMMARY_MODEL", default="text-ada-001", not_secret=True,
-    thread_safe=True)
-
-PINECONE_API_KEY = LazySetting("PINECONE_API_KEY", thread_safe=True)
-
-PINECONE_ENVIRONMENT = LazySetting(
-    "PINECONE_ENVIRONMENT", default="us-central1-gcp", not_secret=True,
-    thread_safe=True)
-
-PINECONE_INDEX_NAME = LazySetting(
-    "PINECONE_INDEX_NAME", default="corpuskeeper", not_secret=True, thread_safe=True)
-
-PINECONE_LOGGING = LazySetting(
-    "PINECONE_LOGGING", default="0", not_secret=True, thread_safe=False)
-
-PROMPT_ID = LazySetting(
-    "PROMPT_ID", default="", not_secret=True, local_only=True)
 
 # REDIRECT_URL = None
 # if '.cloudshell.dev' in os.getenv('WEB_HOST', ''):
 #     REDIRECT_URL = "https://5000-cs-576630579345-default.cs-us-west1-ijlt.cloudshell.dev/login"
 #     print("REDIRECT_URL: " + REDIRECT_URL)
 
-SYSTEM_MESSAGE = LazySetting(
-    "SYSTEM_MESSAGE", default="Friendly conversation between Human and AI using Markdown format. AI must provide truthful detail, not make up answers, specify language in codeblocks, and prioritize additional information provided by human if available. Use markdown tables when appropriate.")
-
-TAKEAWAYS_MODEL = LazySetting(
-    "TAKEAWAYS_MODEL", default="disabled", not_secret=True, thread_safe=False)
-
-TEMPERATURE = LazySetting("TEMPERATURE", default="0.1", not_secret=True)
-
-# the last time the Terms of Service were updated
-TERMS_UPDATED_AT = LazySetting(
-    "TERMS_UPDATED_AT", default="2023-06-19", not_secret=True)
-
-USER_ID = LazySetting("USER_ID", default="", local_only=True, not_secret=True)
-
-BREAK_MARKER = LazySetting("BREAK_MARKER", default="\n\n", not_secret=True)
 
 TMPDIR = LazySetting("TMPDIR", default="/tmp", local_only=True, not_secret=True)
 

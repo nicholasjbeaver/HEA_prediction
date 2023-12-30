@@ -7,7 +7,7 @@ import os
 # import 3rd party modules
 
 # import local modules
-from pubsub_config import (
+from settings import (
     GOOGLE_CLOUD_PROJECT,
     GOOGLE_COMPUTE_REGION,
     GOOGLE_PUBSUB_TOPIC,
