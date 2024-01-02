@@ -63,22 +63,39 @@ def run_prediction_client():
         logger.debug(f"Publish the message: {data} on topic {pub_topic_id}")
         pubsub.publish(data, topic_id=pub_topic_id, **attributes)
 
-        # main function
+
+def run_prediction_client_with_file(file_name):
+    """
+    run the prediction client using a file
+    """
 
 
+# main function
 if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
 
     # check input flags for --client
-    parser.add_argument("--client", help="Run the prediction client", action="store_true", default=True)
+    parser.add_argument("--cli", help="Run the prediction client using command line input", action="store_true", default=True)
+
+    # check for an input file and then get the filename
+    # check input flags for --file
+    parser.add_argument("--file", help="Run the prediction client using a file", action= "store", default=False)
+
 
     # parse the input arguments 
     args = parser.parse_args()
 
-    if args.client:
+    if args.cli:
         run_prediction_client()
+    elif args.file:
+        # get the filename from the command line
+        file_name = args.file
+        logger.info(f"file name: {file_name}")
+        run_prediction_client_with_file(file_name)
+    else:
+        pass
 
 
     # exit the program
