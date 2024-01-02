@@ -1,0 +1,85 @@
+# import standard modules
+import logging
+import sys
+import json
+import os
+import argparse
+from dataclasses import dataclass, asdict
+
+
+# import 3rd party modules
+
+# import local modules
+from gcp_utils.settings import (
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_COMPUTE_REGION,
+    GOOGLE_PUBSUB_TOPIC,
+    logger
+)
+
+# import common modules
+from gcp_utils import pubsub
+from cloud_processor import input_message
+
+
+# set the logging level to always be DEBUG in this module
+logger.setLevel(logging.DEBUG)
+
+def run_prediction_client():
+
+    pub_topic_id = GOOGLE_PUBSUB_TOPIC
+
+    # loop getting command line input, exit loop when ctrl+c
+    while True:
+        try:
+            # input an alloy
+            alloy = input("Enter an alloy to predict: ")
+            if alloy == "exit":
+                break
+
+            # input a crystal type
+            crystal = input("Enter a crystal type: ")
+            if crystal == "exit":
+                break
+
+        except KeyboardInterrupt:
+            logger.info(f'keyboard interrupt received...exiting')
+            sys.exit(0)
+
+            break
+
+        # create dataclass with inputte data
+        data = input_message(alloy, crystal)
+        logger.debug(f"dataclass to be sent to prediction server: {data}")
+
+        # convert dataclass to json
+        data = json.dumps(asdict(data)).encode('utf-8')
+        logger.info(f"json message to publish: {data}")
+
+        # Define your data and attributes.  These are optional and only used for filtering messages.
+        attributes = {}
+        
+        # Publish the message
+        logger.debug(f"Publish the message: {data} on topic {pub_topic_id}")
+        pubsub.publish(data, topic_id=pub_topic_id, **attributes)
+
+        # main function
+
+
+if __name__ == "__main__":
+
+
+    parser = argparse.ArgumentParser()
+
+    # check input flags for --client
+    parser.add_argument("--client", help="Run the prediction client", action="store_true", default=True)
+
+    # parse the input arguments 
+    args = parser.parse_args()
+
+    if args.client:
+        run_prediction_client()
+
+
+    # exit the program
+    sys.exit(0)

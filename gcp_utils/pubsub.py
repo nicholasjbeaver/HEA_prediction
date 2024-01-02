@@ -10,12 +10,15 @@ import time
 # Third-party imports
 
 # Local imports
-#import gcp
-from pubsub_config import (
+from . import gcp
+from .settings import (
     GOOGLE_CLOUD_PROJECT,
     GOOGLE_COMPUTE_REGION,
     GOOGLE_PUBSUB_TOPIC,
     logger
+)
+from .utils import (
+    duck_bytes,
 )
 
 
@@ -36,6 +39,7 @@ class Publishable:
         self.default_attributes = default_attributes.copy()
 
     def __call__(self, data, **attributes):
+        data = duck_bytes(data)
 
         # start with default_attributes and then add attributes
         publisher_attributes = self.default_attributes.copy()
