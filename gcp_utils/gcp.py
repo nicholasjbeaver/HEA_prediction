@@ -6,12 +6,12 @@ import os
 import re
 
 # Local imports
-from settings import (
+from .settings import (
     GOOGLE_APPLICATION_CREDENTIALS, GOOGLE_CLOUD_PROJECT,
     GOOGLE_SIGNING_CREDENTIALS,
     logger
 )
-from utils import duck_dict
+from .utils import duck_dict
 
 
 def credentials(credentials_file=GOOGLE_APPLICATION_CREDENTIALS):

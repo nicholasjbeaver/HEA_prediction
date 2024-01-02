@@ -10,14 +10,14 @@ import time
 # Third-party imports
 
 # Local imports
-import gcp
-from settings import (
+from . import gcp
+from .settings import (
     GOOGLE_CLOUD_PROJECT,
     GOOGLE_COMPUTE_REGION,
     GOOGLE_PUBSUB_TOPIC,
     logger
 )
-from utils import (
+from .utils import (
     duck_bytes,
 )
 

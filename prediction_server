@@ -4,6 +4,8 @@ import sys
 import json
 import os
 import argparse
+from dataclasses import dataclass, asdict
+
 
 # import 3rd party modules
 
@@ -17,8 +19,7 @@ from gcp_utils.settings import (
 
 # import common modules
 from gcp_utils import pubsub
-from cloud_processor import input_message
-
+import cloud_processor
 
 # set the logging level to always be DEBUG in this module
 logger.setLevel(logging.DEBUG)
@@ -26,7 +27,8 @@ logger.setLevel(logging.DEBUG)
 def run_prediction_server():
     # Define your data and attributes.  These are optional and only used for filtering messages.
     attributes = {}
-    sub_topic_id = GOOGLE_PUBSUB_TOPIC  
+    sub_topic_id = GOOGLE_PUBSUB_TOPIC 
+    pub_topic_id = GOOGLE_PUBSUB_TOPIC 
 
     logger.info(f"Creating a subscription for topic: {sub_topic_id}")
     subscription_id = pubsub.subscription(topic_id=sub_topic_id, subscription_id="prediction_server", **attributes)
@@ -43,8 +45,16 @@ def run_prediction_server():
 
             # Print the messages
             for message in messages:
-                logger.info(message.text, message.attributes)
+                logger.info(f'Received message: {message.text} with attributes: {message.attributes}')
 
+                # convert message.text to a dataclass
+                data = cloud_processor.input_message(**json.loads(message.text))
+
+                # process the message
+                cloud_processor.process_message(data)
+
+    except Exception as e:
+        logger.exception(e)
     except KeyboardInterrupt:
         logger.info(f'keyboard interrupt received...exiting')
 
@@ -52,69 +62,19 @@ def run_prediction_server():
     logger.info(f'deleting subscription: {subscription_id}')
     pubsub.delete(name=subscription_id)
 
-def run_prediction_client():
-
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC
-
-    # loop getting command line input, exit loop when ctrl+c
-    while True:
-        try:
-            # input an alloy
-            alloy = input("Enter an alloy to predict: ")
-            if alloy == "exit":
-                break
-
-            # input a crystal type
-            crystal = input("Enter a crystal type: ")
-            if crystal == "exit":
-                break
-
-        except KeyboardInterrupt:
-            logger.info(f'keyboard interrupt received...exiting')
-            sys.exit(0)
-
-            break
-
-        # create dataclass with inputte data
-        data = input_message(alloy, crystal)
-        logger.debug(f"dataclass to be sent to prediction server: {data}")
-
-        # convert dataclass to json
-        data = json.dumps(data).encode('utf-8')
-        logger.info(f"json message to publish: {data}")
-
-        # Define your data and attributes.  These are optional and only used for filtering messages.
-        attributes = {}
-        
-        # Publish the message
-        logger.debug(f"Publish the message: {data} on topic {pub_topic_id}")
-        pubsub.publish(data, topic_id=pub_topic_id, **attributes)
-
 
 # main function
 if __name__ == "__main__":
 
     # check input flags for --server
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server", help="Run the prediction server", action="store_true")
-
-    # check input flags for --client
-    parser.add_argument("--client", help="Run the prediction client", action="store_true")
+    parser.add_argument("--server", help="Run the prediction server", action="store_true", default=True)
 
     # parse the input arguments 
     args = parser.parse_args()
 
-    try: 
-        if args.server:
-            run_prediction_server()
-        elif args.client:
-            run_prediction_client()
-        else:
-            logger.error("Please specify --server or --client")
-    except Exception as e:
-        logger.error(f"Error {e}in running the prediction server or client")
-        sys.exit(1)
-
+    if args.server:
+        run_prediction_server()
 
     # exit the program
     sys.exit(0)

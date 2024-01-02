@@ -6,7 +6,7 @@ import re
 import threading
 
 # Local imports
-from utils import duck_bool
+from .utils import duck_bool
 
 
 DEBUG = duck_bool(os.getenv("DEBUG", "false"))  # raise exceptions, output more
@@ -139,7 +139,7 @@ def __GOOGLE_CLOUD_PROJECT():
     """Getter for `GOOGLE_CLOUD_PROJECT` setting"""
     GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
     if not GOOGLE_CLOUD_PROJECT:
-        import gcp
+        from . import gcp
         GOOGLE_CLOUD_PROJECT = gcp.detect_project()
         if GOOGLE_CLOUD_PROJECT:
             os.environ["GOOGLE_CLOUD_PROJECT"] = GOOGLE_CLOUD_PROJECT
@@ -152,7 +152,7 @@ def __GOOGLE_APPLICATION_CREDENTIALS():
     """Getter for `GOOGLE_APPLICATION_CREDENTIALS` setting"""
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if not GOOGLE_APPLICATION_CREDENTIALS:
-        import gcp
+        from . import gcp
         GOOGLE_APPLICATION_CREDENTIALS = gcp.detect_credentials_file()
         if GOOGLE_APPLICATION_CREDENTIALS:
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
@@ -192,7 +192,7 @@ GOOGLE_SIGNING_CREDENTIALS = LazySetting(
 def __GOOGLE_STORAGE_BUCKET():
     """Getter for `GOOGLE_STORAGE_BUCKET` setting"""
     # try bucket name same as current project (e.g. `gpt-funhouse`)
-    import gs
+    from . import gs
     GOOGLE_STORAGE_BUCKET = str(GOOGLE_CLOUD_PROJECT)
     if gs.bucket_exists(GOOGLE_STORAGE_BUCKET):
         return GOOGLE_STORAGE_BUCKET
@@ -275,7 +275,7 @@ def get_setting(setting_id, project_id=GOOGLE_CLOUD_PROJECT, default=None,
     :param not_secret: If `True`, log the value of the setting.
     :return: Setting string or exception is raised if not found.
     """
-    import gcp
+    from . import gcp
 
     logger.debug("[get_setting] %s (project_id=%s, default=%s, prefix=%s)",
                  setting_id, project_id, repr(default), prefix)
