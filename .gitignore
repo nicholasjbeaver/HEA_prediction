@@ -2,3 +2,4 @@ vasp_files_temp
 alignn_ff.log
 opt.log
 opt.traj
+__pycache__
