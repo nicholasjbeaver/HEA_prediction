@@ -15,7 +15,8 @@ ENV = os.getenv("ENV", "dev").lower()
 
 CKBASE = "ck" + ENV if ENV != "prod" else "corpuskeeper"
 
-SECRET_PREFIX = os.getenv("SECRET_PREFIX", CKBASE.upper() + "_")
+# SECRET_PREFIX = os.getenv("SECRET_PREFIX", CKBASE.upper() + "_")
+SECRET_PREFIX = ""  # don't need environments for this project
 
 # LAZY SETTINGS follow (they are only evaluated when they are used)
 class LazySetting:
