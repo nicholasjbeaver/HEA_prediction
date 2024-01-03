@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ase.io import vasp
 
+
 #alignn setup
 from alignn.ff.ff import AlignnAtomwiseCalculator,default_path,wt10_path,alignnff_fmult,fd_path,ForceField
 #model_path = wt10_path()
@@ -91,14 +92,20 @@ def calculate_energy(filepath, relaxation=False):
 
     atoms = make_atoms_object(filepath)
     energy = 0
+    vasp_data = None
 
     if relaxation:
         relaxed_atoms=optimize_lattice(atoms)
         energy = energy_per_atom(relaxed_atoms)
+        temp_filename = 'vasp_files_temp/relaxed_lattice.vasp'
+        JarvisAtoms.write_poscar(relaxed_atoms, filename=temp_filename)
+        with open(temp_filename, 'r') as file:
+            vasp_data = file.readlines()
+
     else:
         energy = energy_per_atom(atoms)
     
-    return energy
+    return energy, vasp_data
 
 
 if __name__ == '__main__':
