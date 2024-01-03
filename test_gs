@@ -23,7 +23,7 @@ if __name__ == "__main__":
     bucket_name = GOOGLE_CLOUD_PROJECT
 
     # set the folder name
-    gs_folder_name = f"gs://{bucket_name}/pubsub_test"
+    gs_folder_name = f"gs://{bucket_name}/pubsub_test/"
 
     # set the file name
     file_name = "./vasp_files_temp/test.txt"
