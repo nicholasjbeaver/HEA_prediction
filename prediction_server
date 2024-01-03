@@ -4,6 +4,7 @@ import sys
 import json
 import os
 import argparse
+import time
 from dataclasses import dataclass, asdict
 
 
@@ -43,7 +44,7 @@ def run_prediction_server():
         while True:
             # Pull the message
             logging.debug(f"Pull messages: on {pub_topic_id} using subscription {subscription_id}")
-            messages = pubsub.pull(topic_id=sub_topic_id, subscription_id=subscription_id, max_messages=1)
+            messages = pubsub.pull(topic_id=sub_topic_id, subscription_id=subscription_id, max_messages=1, timeout=30)
 
             # Print the messages
             for message in messages:
@@ -54,6 +55,10 @@ def run_prediction_server():
 
                 # process the message
                 cloud_processor.process_message(data)
+
+            # sleep for 5 seconds
+            #logger.debug(f'Sleeping for 5 seconds')
+            #time.sleep(5)
 
     except Exception as e:
         logger.exception(e)
