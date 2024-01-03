@@ -7,14 +7,14 @@ from urllib.parse import urljoin
 # Third-party imports
 
 # Local imports
-import gcp
-from settings import (
+from . import gcp
+from . settings import (
     logger,
     GOOGLE_CLOUD_PROJECT, GOOGLE_SIGNING_CREDENTIALS,
     GOOGLE_STORAGE_BUCKET, GOOGLE_STORAGE_FOLDER,
     MAX_CONTENT_MB, TMPDIR,
 )
-from utils import (
+from .utils import (
     idhash, tznow,
 )
 from werkzeug.utils import secure_filename

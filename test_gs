@@ -1,0 +1,50 @@
+# import standard modules
+import logging
+import os
+
+# import 3rd party modules
+
+# import local modules
+from gcp_utils.settings import (
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_COMPUTE_REGION,
+    logger
+)
+
+from gcp_utils import gs
+
+logger.setLevel(logging.DEBUG)
+
+# main
+
+if __name__ == "__main__":
+
+    # set the google storage bucket name
+    bucket_name = GOOGLE_CLOUD_PROJECT
+
+    # set the folder name
+    gs_folder_name = f"gs://{bucket_name}/pubsub_test"
+
+    # set the file name
+    file_name = "./vasp_files_temp/test.txt"
+    
+    # Publish the message
+    logger.debug(f"Putting local file {file_name} to Google Cloud Storage at {bucket_name}/{gs_folder_name}")
+    gs.put(path=file_name, bucket=bucket_name, folder=gs_folder_name)
+    
+
+'''
+def put(path, name=None, folder=GOOGLE_STORAGE_FOLDER,
+        bucket=GOOGLE_STORAGE_BUCKET,
+        project_id=GOOGLE_CLOUD_PROJECT, **kwargs):
+    """Upload a file to Google Cloud Storage"""
+    blob = ref(name=name or path, folder=folder, bucket=bucket,
+               project_id=project_id, **kwargs)
+
+    logger.info("[GS] PUT %s (%s)", loc(blob), path)
+
+    blob.upload_from_filename(path)
+
+    return loc(blob)
+
+'''
