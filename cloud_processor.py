@@ -13,6 +13,7 @@ class input_message:
 @dataclass
 class output_message:
     alloy: str
+    mol_fractions: dict
     crystal: str
     energy: float
     poscar_file: List[str]
@@ -21,10 +22,10 @@ def process_message(message):
 
     alloy = message.alloy
     crystal = message.crystal    
-    poscar = generate_poscar_files(alloy, crystal)
+    poscar, mol_fractions = generate_poscar_files(alloy, crystal)
     vasp_file = write_vasp(poscar, f'vasp_files_temp/{alloy}_{crystal}.vasp')
     energy = calculate_energy(vasp_file)
-    output = output_message(alloy, crystal, energy, poscar)
+    output = output_message(alloy, mol_fractions, crystal, energy, poscar)
     logging.info(f'dataclass output:{output}')
     return output
 

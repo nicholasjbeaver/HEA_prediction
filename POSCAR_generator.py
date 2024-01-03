@@ -106,7 +106,7 @@ def generate_poscar_files(alloy, crystal):
         filepath = 'BCC_32atom_template.txt'
 
     output_file = make_vasp(alloy, mol_fractions, filepath, f'vasp_files_temp/{alloy}_{crystal}.vasp')
-    return output_file
+    return output_file, mol_fractions
 
 if __name__ == '__main__':
     alloys = ['AlFe0.2CrCuCo', 'Al0.1Fe0.3Cr0.1Ti', 'AlFeTiVZrCuNiC']
