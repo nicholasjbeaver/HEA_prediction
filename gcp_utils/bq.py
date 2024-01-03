@@ -9,15 +9,14 @@ import re
 from google.cloud import bigquery
 
 # Local imports
-import gcp
-from settings import (
+from . import gcp
+from .settings import (
     LazySetting, logger,
     GOOGLE_BIGQUERY_DATASET, GOOGLE_BIGQUERY_CTE, GOOGLE_BIGQUERY_DEFINITIONS,
     GOOGLE_BIGQUERY_QUERIES,
-    GOOGLE_CLOUD_PROJECT, GOOGLE_COMPUTE_REGION,
-    CORPUS_ID
+    GOOGLE_CLOUD_PROJECT, GOOGLE_COMPUTE_REGION
 )
-from utils import (
+from .utils import (
     duck_dict
 )
 
@@ -239,121 +238,6 @@ def is_view_name(name):
     return False
 
 
-def load_csv(filename, table=None, description=None, labels=None,
-             dataset=CORPUS_ID, location=GOOGLE_COMPUTE_REGION, checksum=None,
-             overwrite=False, nowait=False, project=GOOGLE_CLOUD_PROJECT):
-    """Load a CSV file into a BigQuery table
-    :param filename: Name of CSV file to load
-    :param table: Name of table to load into or None to use filename
-    :param description: Description of table to create
-    :param labels: Optional dictionary of labels to add to table
-    :param dataset: Name of dataset to load into
-    :param location: Location of dataset to load into
-    :param checksum: Optional checksum to use to skip loading if already loaded
-    :param overwrite: Overwrite existing table if it exists?
-    :param nowait: Return immediately without waiting for job to complete
-    :param project: Name of project to load into
-    :return: BigQuery Job
-    """
-    from google.api_core.exceptions import NotFound
-
-    client = _bq_client(project=project)
-    dataset_ref = client.dataset(_bq_idstr(str(dataset)))
-
-    labels = labels.copy() if labels else {}
-
-    # create "checksum" label so we can detect changes
-    checksum = _bq_idstr(checksum, tolower=True)
-    if len(checksum) > 63:
-        checksum = checksum[:63]
-    labels["checksum"] = checksum
-
-    table = make_name(filename) if table is None else table
-    table_ref = dataset_ref.table(str(table))
-    is_new_table = False
-
-    if not overwrite:
-        try:
-            table_obj = client.get_table(table_ref)
-            # retrieve value of label "checksum"
-            table_checksum = table_obj.labels.get("checksum", "")
-            if checksum and labels["checksum"] == table_checksum:
-                logger.info("[BQ] SKIP: %s -> %s (checksum=%s)",
-                            filename, table, checksum)
-                return None
-        except NotFound as notfound_err:
-            is_new_table = True
-            if "Not found: Dataset" in str(notfound_err):
-                logger.info("[BQ] Creating dataset %s", dataset_ref)
-                dataset_obj = bigquery.Dataset(dataset_ref)
-                dataset_obj.location = str(location)
-                dataset_obj.default_table_expiration_ms = \
-                    30 * 24 * 60 * 60 * 1000  # 30 days
-                dataset_obj = client.create_dataset(dataset_obj)
-            pass
-
-    job_extra_kwargs = {}
-    if labels:
-        job_extra_kwargs["labels"] = labels
-    if is_new_table and description:
-        job_extra_kwargs["destination_table_description"] = description
-
-    job_config = bigquery.LoadJobConfig(
-        allow_quoted_newlines=True,
-        allow_jagged_rows=True,
-        autodetect=True,  # Automatically detect the schema
-        max_bad_records=9999,
-        skip_leading_rows=1,
-        source_format=bigquery.SourceFormat.CSV,
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-        **job_extra_kwargs,
-    )
-
-    if filename.startswith("gs://"):
-        job = client.load_table_from_uri(filename, table_ref,
-                                         job_config=job_config)
-    else:
-        assert os.path.exists(filename), "File not found: %s" % filename
-
-        # count rows in existing CSV
-        num_rows = 0
-        with open(filename, "rt") as f:
-            num_rows = sum(1 for line in f)
-            num_rows -= 1  # ignore header row
-
-        logger.info("[BQ] Loading %s (%.2f MB, %d rows) into %s:%s", filename,
-                    os.path.getsize(filename) / 1024 / 1024, num_rows,
-                    dataset, table)
-        with open(filename, "rb") as source_file:
-            job = client.load_table_from_file(source_file, table_ref,
-                                            job_config=job_config)
-
-    logger.info("[BQ] JOB %s: LOAD %s -> %s", job.job_id, filename, table)
-
-    if not nowait:
-        wait(job)
-
-    if not is_new_table or not nowait:
-        table_obj = client.get_table(table_ref)
-        logger.info("[BQ] Loaded %d rows and %d columns to %s",
-                    table_obj.num_rows, len(table_obj.schema), table_obj)
-
-        updated_fields = []
-
-        if description:
-            table_obj.description = description
-            updated_fields += ["description"]
-
-        if labels:
-            table_obj.labels = labels
-            updated_fields += ["labels"]
-
-        if not is_new_table and updated_fields:
-            table_obj = client.update_table(table_obj, updated_fields)
-
-    return job
-
-
 def make_name(filename, dashes=False):
     """Make a BigQuery table name from a URI or filename
     :param filename: Filename or URI to use
@@ -563,14 +447,6 @@ def save(name_or_definition, type=None,
         updated_table = client.update_table(table, ["schema"])
 
     return updated_table
-
-
-def schema_str(table, dataset=CORPUS_ID, project=GOOGLE_CLOUD_PROJECT):
-    """Generate a single-line schema string for a BigQuery table"""
-    client = _bq_client(project=project)
-    table_obj = client.get_table(client.dataset(_bq_idstr(dataset)).table(table))
-    return ",".join([f"{field.name}:{field.field_type}"
-                     for field in table_obj.schema])
 
 
 def wait(jobs, location=GOOGLE_COMPUTE_REGION, project_id=GOOGLE_CLOUD_PROJECT):
