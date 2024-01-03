@@ -23,7 +23,7 @@ if __name__ == "__main__":
     bucket_name = GOOGLE_CLOUD_PROJECT
 
     # set the folder name
-    gs_folder_name = f"gs://{bucket_name}/pubsub_test"
+    gs_folder_name = f"pubsub_test/"
 
     # set the file name
     file_name = "./vasp_files_temp/test.txt"
@@ -31,6 +31,11 @@ if __name__ == "__main__":
     # Publish the message
     logger.debug(f"Putting local file {file_name} to Google Cloud Storage at {bucket_name}/{gs_folder_name}")
     gs.put(path=file_name, bucket=bucket_name, folder=gs_folder_name)
+
+    # Now get a file to local storage location
+    gs_file_name = f"{gs_folder_name}test.txt"
+    logger.debug(f"Getting file {gs_file_name} from Google Cloud Storage at {bucket_name}")
+    gs.get(folder=gs_folder_name, name="test.txt", path="./vasp_files_temp/test_get.txt", bucket=bucket_name)
     
 
 '''
