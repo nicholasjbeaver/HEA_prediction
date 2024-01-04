@@ -37,19 +37,3 @@ if __name__ == "__main__":
     logger.debug(f"Getting file {gs_file_name} from Google Cloud Storage at {bucket_name}")
     gs.get(folder=gs_folder_name, name="test.txt", path="./vasp_files_temp/test_get.txt", bucket=bucket_name)
     
-
-'''
-def put(path, name=None, folder=GOOGLE_STORAGE_FOLDER,
-        bucket=GOOGLE_STORAGE_BUCKET,
-        project_id=GOOGLE_CLOUD_PROJECT, **kwargs):
-    """Upload a file to Google Cloud Storage"""
-    blob = ref(name=name or path, folder=folder, bucket=bucket,
-               project_id=project_id, **kwargs)
-
-    logger.info("[GS] PUT %s (%s)", loc(blob), path)
-
-    blob.upload_from_filename(path)
-
-    return loc(blob)
-
-'''

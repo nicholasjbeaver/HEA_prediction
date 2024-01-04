@@ -1,0 +1,81 @@
+# import standard modules
+import logging
+import os
+from dataclasses import dataclass, asdict
+
+
+# import 3rd party modules
+
+# import local modules
+from gcp_utils.settings import (
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_COMPUTE_REGION,
+    logger
+)
+
+from gcp_utils import bq
+from gcp_utils.utils import tznow, duck_str
+
+
+from cloud_processor import output_message
+
+logger.setLevel(logging.DEBUG)
+
+# main
+
+if __name__ == "__main__":
+
+    # setup test data
+    alloy =  "Al3Fe"
+    mol_fractions = {"Al": 0.75, "Fe": 0.25}
+    crystal = "FCC"
+    energy = 1.0
+    postcar_string = """alloy
+1.0
+7.08       0.0   0.0
+0.0        7.08  0.0
+0.0        0.0   14.16
+Al Fe
+16 16
+Cartesian
+1.77       5.31  5.31   
+1.77       5.31  12.39  
+3.54       3.54  10.62  
+3.54       7.08  3.54   
+"""
+
+    postcar_data = postcar_string.splitlines()
+
+    # setup test data
+    data_record = duck_str(asdict(output_message(alloy, mol_fractions, crystal, energy, postcar_data)))
+
+    # BQ project name
+    project_name = GOOGLE_CLOUD_PROJECT
+
+    # BQ dataset name
+    dataset_name = "experiments"
+
+    # BQ table name
+    table_name = "single_energy_calculations"
+
+    # Insert a row into the database
+    logger.debug(f"Putting record {data_record} into BigQuery at {project_name}.{dataset_name}.{table_name}")
+
+    # BQ insert
+    bq.insert(table=table_name, project=project_name, dataset=dataset_name, 
+                created_at=tznow(), ingestdata = "", metadata=data_record)
+
+    # Select a row from a database
+    query = f"""
+    SELECT * FROM {project_name}.{dataset_name}.{table_name}
+    """
+    logger.debug(f"Getting record from BigQuery at {project_name}.{dataset_name}.{table_name}")
+    rows = bq.query(query, dataset=dataset_name, project=project_name)
+
+    # log rows
+    for row in rows:
+        logger.debug(row)
+
+    
+    
+
