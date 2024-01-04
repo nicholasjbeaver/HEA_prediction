@@ -5,6 +5,7 @@ import json
 import os
 import argparse
 from dataclasses import dataclass, asdict
+import pandas as pd
 
 
 # import 3rd party modules
@@ -42,6 +43,11 @@ def run_prediction_client():
             if crystal == "exit":
                 break
 
+            # input True/False to specify whether to do relaxation
+            do_relaxation = input("Enter True (do relaxation) or False (no relaxation): ")
+            if do_relaxation == "exit":
+                break
+
         except KeyboardInterrupt:
             logger.info(f'keyboard interrupt received...exiting')
             sys.exit(0)
@@ -49,7 +55,7 @@ def run_prediction_client():
             break
 
         # create dataclass with inputte data
-        data = input_message(alloy, crystal)
+        data = input_message(alloy, crystal, do_relaxation)
         logger.debug(f"dataclass to be sent to prediction server: {data}")
 
         # convert dataclass to json
@@ -64,10 +70,28 @@ def run_prediction_client():
         pubsub.publish(data, topic_id=pub_topic_id, **attributes)
 
 
-def run_prediction_client_with_file(file_name):
+def run_prediction_client_with_file(filename):    
     """
-    run the prediction client using a file
+    run the prediction client using a csv file
+
     """
+    pub_topic_id = GOOGLE_PUBSUB_TOPIC
+
+    # make df of the csv for ease of use
+    df = pd.read_csv(filename)
+
+    # iterate over rows of input file and turn into json objects    
+    for index, row in df.iterrows():
+
+        # make json message out of a row made into a dictionary
+        json_message = json.dumps(row.to_dict()).encode('utf-8')     
+        logger.debug(f"Publish the message: {json_message} on topic {pub_topic_id}")
+
+        # Define your data and attributes.  These are optional and only used for filtering messages.
+        attributes = {}
+        pubsub.publish(json_message, topic_id=pub_topic_id, **attributes)
+    
+
 
 
 # main function
@@ -77,21 +101,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # check input flags for --client
-    parser.add_argument("--cli", help="Run the prediction client using command line input", action="store_true", default=True)
+    parser.add_argument("-cli", help="Run the prediction client using command line input", action="store_true")
 
     # check for an input file and then get the filename
     # check input flags for --file
-    parser.add_argument("--file", help="Run the prediction client using a file", action= "store", default=False)
+    parser.add_argument("-file", "--filename", help="Run the prediction client using the specified file", action="store", default=None)
 
 
     # parse the input arguments 
     args = parser.parse_args()
 
+    filename = args.filename
+
     if args.cli:
         run_prediction_client()
-    elif args.file:
+    elif args.filename:
         # get the filename from the command line
-        file_name = args.file
+        file_name = filename
         logger.info(f"file name: {file_name}")
         run_prediction_client_with_file(file_name)
     else:
