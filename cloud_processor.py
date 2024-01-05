@@ -1,8 +1,19 @@
-from POSCAR_generator import generate_poscar_files, write_vasp
-from energy_calculation import calculate_energy
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
 import logging
+
+# import local modules
+from gcp_utils.settings import (
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_COMPUTE_REGION,
+    logger
+)
+from gcp_utils import bq
+from gcp_utils.utils import tznow, duck_str
+
+
+from POSCAR_generator import generate_poscar_files, write_vasp
+from energy_calculation import calculate_energy
 
 # input message
 
@@ -39,13 +50,40 @@ def process_message(message):
     
     output = output_message(alloy, mol_fractions, crystal, energy, poscar_data)
     logging.info(f'dataclass output:{output}')
+
+    # store results in BQ
+    store_results(output)
+
     return output
+
+def store_results(output):
+    logging.info(f'storing results')
+
+    # convert the output to a dictionary and then to a string which will be parsed for the BQ insert
+    data_record = duck_str(asdict(output))
+
+    # BQ project name
+    project_name = GOOGLE_CLOUD_PROJECT
+
+    # BQ dataset name
+    dataset_name = "experiments"
+
+    # BQ table name
+    table_name = "single_energy_calculations"
+
+    # Insert a row into the database
+    logger.debug(f"Putting record {data_record} into BigQuery at {project_name}.{dataset_name}.{table_name}")
+
+    # BQ insert...this matches the table layout.
+    bq.insert(table=table_name, project=project_name, dataset=dataset_name, 
+                created_at=tznow(), ingestdata = "", metadata=data_record)
+
 
 if __name__ == "__main__":
     
     alloy = 'AlFe'
     crystal = 'FCC'
-    do_relaxation = True
+    do_relaxation = False
     message = input_message(alloy, crystal, do_relaxation)
     output = process_message(message)
     print(output)
