@@ -99,12 +99,13 @@ def run_prediction_client_with_file(filename):
         # make json message out of a row made into a dictionary
         json_message = json.dumps(row.to_dict()).encode('utf-8')
 
+        '''
         try:
             json_object = json.loads(json_message)
-            logger.info('good json')
+            logger.debug('good json')
         except json.JSONDecodeError as e:
-            logger.info('bad json')
-
+            logger.debug('bad json')
+        '''
         logger.debug(f"Publish the message: {json_message} on topic {pub_topic_id}")
 
         # Define your data and attributes.  These are optional and only used for filtering messages.
