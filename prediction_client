@@ -112,6 +112,9 @@ def run_prediction_client_with_file(filename):
         future = pubsub.publish(json_message, topic_id=pub_topic_id, **attributes)
         result = future.result()
 
+        # log the result from future
+        logger.debug(f"result: {result}")
+
 
 # main function
 if __name__ == "__main__":
