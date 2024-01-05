@@ -113,8 +113,12 @@ def run_prediction_client_with_file(filename):
         future = pubsub.publish(json_message, topic_id=pub_topic_id, **attributes)
         result = future.result()
 
-        # log the result from future
-        logger.debug(f"result: {result}")
+        try:
+        # This will block until the message is published
+            message_id = future.result()
+            logger.debug(f"Message published with ID: {message_id}")
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
 
 
 # main function
