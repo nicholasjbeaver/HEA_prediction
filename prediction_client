@@ -7,7 +7,6 @@ import argparse
 from dataclasses import dataclass, asdict
 import pandas as pd
 
-
 # import 3rd party modules
 
 # import local modules
@@ -27,8 +26,6 @@ from cloud_processor import input_message
 logger.setLevel(logging.DEBUG)
 
 def run_prediction_client():
-
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC
 
     # loop getting command line input, exit loop when ctrl+c
     while True:
@@ -65,7 +62,7 @@ def run_prediction_client():
 
             break
 
-        # create dataclass with inputte data
+        # create dataclass with input data
         data = input_message(alloy, crystal, do_relaxation)
         logger.debug(f"dataclass to be sent to prediction server: {data}")
 
@@ -87,8 +84,10 @@ def run_prediction_client_with_file(filename):
     """
     run the prediction client using a csv file
 
+    Args:
+        filename (str): the name of the csv file
+
     """
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC
 
     # make df of the csv for ease of use
     df = pd.read_csv(filename)
@@ -97,28 +96,44 @@ def run_prediction_client_with_file(filename):
     for index, row in df.iterrows():
 
         # make json message out of a row made into a dictionary
-        json_message = json.dumps(row.to_dict()).encode('utf-8')
+        data = input_message(row['alloy'], row['crystal'], row['do_relaxation'])
+        logger.debug(f"Publish the message: {data} on topic {pub_topic_id}")
+        publish_input_message(data)
 
-        '''
-        try:
-            json_object = json.loads(json_message)
-            logger.debug('good json')
-        except json.JSONDecodeError as e:
-            logger.debug('bad json')
-        '''
-        logger.debug(f"Publish the message: {json_message} on topic {pub_topic_id}")
 
-        # Define your data and attributes.  These are optional and only used for filtering messages.
-        attributes = {}
-        future = pubsub.publish(json_message, topic_id=pub_topic_id, **attributes)
-        result = future.result()
+def publish_input_message(data: input_message):
+    """
+    publish a input_message dataclass to pubsub
 
-        try:
-        # This will block until the message is published
-            message_id = future.result()
-            logger.debug(f"Message published with ID: {message_id}")
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
+    """
+
+    pub_topic_id = GOOGLE_PUBSUB_TOPIC
+
+    # convert dataclass to json
+    data = json.dumps(asdict(data)).encode('utf-8')
+
+    '''
+    try:
+        json_object = json.loads(json_message)
+        logger.debug('good json')
+    except json.JSONDecodeError as e:
+        logger.debug('bad json')
+    '''
+    logger.debug(f"Publish the message: {json_message} on topic {pub_topic_id}")
+
+    # Define your data and attributes.  These are optional and only used for filtering messages.
+    attributes = {}
+    future = pubsub.publish(json_message, topic_id=pub_topic_id, **attributes)
+    result = future.result()
+
+    try:
+    # This will block until the message is published
+        message_id = future.result()
+        logger.debug(f"Message published with ID: {message_id}")
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+
+    
 
 
 # main function
