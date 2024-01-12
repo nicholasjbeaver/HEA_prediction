@@ -1,14 +1,14 @@
 #
 #
-# Build this Dockerfile from the corpuskeeper directory:
+# Build this Dockerfile from the HEA_prediction directory:
 #
-# docker build -t ingestion_pipeline -f ./ingestion_pipeline/Dockerfile .
+# docker build -t prediction_server -f ./build/Dockerfile .
 #
 # run the container locally:
 #
-# docker run -e PORT=9999 --env-file .env ingestion_pipeline
+# docker run -e PORT=9999 --env-file .env prediction_server
 #
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 RUN apt-get update && \
     apt-get upgrade -y && \
@@ -22,26 +22,16 @@ ENV PYTHONUNBUFFERED True
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 
-# Add ingestion_pipeline to PYTHONPATH
-ENV PYTHONPATH "${PYTHONPATH}:${APP_HOME}/rag"
+# Add gcp_utils to PYTHONPATH, so it will look for modules there.
+ENV PYTHONPATH "${PYTHONPATH}:${APP_HOME}/gcp_utils"
 
 # Copy application dependency manifests to the container image.
 # Copying this separately prevents re-running pip install on every code change.
 COPY requirements.txt $APP_HOME/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# COPY ./ingestion_pipeline/requirements.txt $APP_HOME/ingestion_pipeline/requirements.txt
-# RUN pip install --no-cache-dir -r ./ingestion_pipeline/requirements.txt
-
-# COPY ./ingestion_pipeline/sharders/requirements.txt $APP_HOME/ingestion_pipeline/sharders/requirements.txt
-# RUN pip install --no-cache-dir -r ./ingestion_pipeline/sharders/requirements.txt
-
+# Copy all files including subdirectories in to the home directory in the container
 COPY . $APP_HOME
 
-# Run the web service on container startup.
-# Use gunicorn webserver with one worker process and 8 threads.
-# For environments with multiple CPU cores, increase the number of workers
-# to be equal to the cores available.
-# Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
-# CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 rag
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 "rag:create_app()"
+# Run the prediction_server on container startup.
+CMD ["python", "prediction_server"]

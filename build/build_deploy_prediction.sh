@@ -15,8 +15,7 @@ fi
 # start from the corpuskeeper/rag/build directory
 CK_INGEST_DIR="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 CK_DIR="$(dirname "$CK_INGEST_DIR")"
-ENV=${1:-dev}
-if [ "$ENV" == "prod" ]; then CKBASE="corpuskeeper"; else CKBASE="ck${ENV}"; fi
+
 
 echo $CK_INGEST_DIR
 cp "$CK_INGEST_DIR/build/Dockerfile" "$CK_DIR/Dockerfile"
