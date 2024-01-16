@@ -7,7 +7,6 @@ import argparse
 from dataclasses import dataclass, asdict
 import pandas as pd
 
-
 # import 3rd party modules
 
 # import local modules
@@ -27,8 +26,10 @@ from cloud_processor import input_message
 logger.setLevel(logging.DEBUG)
 
 def run_prediction_client():
+    """
+    run the prediction client using command line input
 
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC
+    """
 
     # loop getting command line input, exit loop when ctrl+c
     while True:
@@ -54,41 +55,30 @@ def run_prediction_client():
                 do_relaxation = bool(eval(do_relaxation))
 
             except (ValueError, SyntaxError):
-                print("Invalid input. Please enter either True or False.")
-                # Handle the invalid input (e.g., ask the user again or exit the program)
-                break
-            
+                logging.error("Invalid input. Please enter either True or False.")
+                # Handle the invalid input (just restart the while loop)
+                continue
 
+            # create dataclass with input data
+            data = input_message(alloy, crystal, do_relaxation)
+            logger.debug(f"dataclass to be sent to prediction server: {data}")
+
+            # publish the dataclass to pubsub
+            publish_input_message(data)
+        
         except KeyboardInterrupt:
             logger.info(f'keyboard interrupt received...exiting')
             sys.exit(0)
-
-            break
-
-        # create dataclass with inputte data
-        data = input_message(alloy, crystal, do_relaxation)
-        logger.debug(f"dataclass to be sent to prediction server: {data}")
-
-        # convert dataclass to json
-        data = json.dumps(asdict(data)).encode('utf-8')
-        logger.info(f"json message to publish: {data}")
-
-        # Define your data and attributes.  These are optional and only used for filtering messages.
-        attributes = {}
-        
-        # Publish the message
-        logger.debug(f"Publish the message: {data} on topic {pub_topic_id}")
-        future = pubsub.publish(data, topic_id=pub_topic_id, **attributes)
-        result = future.result()
-
 
 
 def run_prediction_client_with_file(filename):    
     """
     run the prediction client using a csv file
 
+    Args:
+        filename (str): the name of the csv file
+
     """
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC
 
     # make df of the csv for ease of use
     df = pd.read_csv(filename)
@@ -96,35 +86,55 @@ def run_prediction_client_with_file(filename):
     # iterate over rows of input file and turn into json objects    
     for index, row in df.iterrows():
 
-        # make json message out of a row made into a dictionary
-        json_message = json.dumps(row.to_dict()).encode('utf-8')
+        # convert a row to a dict
+        row_dict = row.to_dict()
 
-        '''
-        try:
-            json_object = json.loads(json_message)
-            logger.debug('good json')
-        except json.JSONDecodeError as e:
-            logger.debug('bad json')
-        '''
-        logger.debug(f"Publish the message: {json_message} on topic {pub_topic_id}")
+        # convert the dict to a input_message dataclass by using kwargs
+        # columns in the file need to match the fields of the dataclass
+        data = input_message(**row_dict)
+        logging.debug(f"dataclass to be sent to prediction server: {data}")
+        
+        publish_input_message(data)
 
-        # Define your data and attributes.  These are optional and only used for filtering messages.
-        attributes = {}
-        future = pubsub.publish(json_message, topic_id=pub_topic_id, **attributes)
-        result = future.result()
 
-        try:
+def publish_input_message(data: input_message):
+    """
+    publish a input_message dataclass to pubsub
+
+    Args:
+        data (input_message): the dataclass to be published
+
+    Returns:
+        bool: True if successful, False if not
+
+    """
+
+    pub_topic_id = GOOGLE_PUBSUB_TOPIC
+
+    # convert dataclass to json
+    msg_data = json.dumps(asdict(data)).encode('utf-8')
+
+    logger.debug(f"Publish the message: {msg_data} on topic {pub_topic_id}")
+
+    # Define your data and attributes.  These are optional and only used for filtering messages.
+    attributes = {}
+    future = pubsub.publish(msg_data, topic_id=pub_topic_id, **attributes)
+    result = future.result()
+
+    try:
         # This will block until the message is published
-            message_id = future.result()
-            logger.debug(f"Message published with ID: {message_id}")
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
+        message_id = future.result()
+        logger.debug(f"Message successfully published with ID: {message_id}")
+        return True
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+        return False
 
 
 # main function
 if __name__ == "__main__":
 
-
+    # create the parser
     parser = argparse.ArgumentParser()
 
     # check input flags for --client
@@ -132,20 +142,19 @@ if __name__ == "__main__":
 
     # check for an input file and then get the filename
     # check input flags for --file
-    parser.add_argument("-file", "--filename", help="Run the prediction client using the specified file", action="store", default=None)
-
+    parser.add_argument("-file", help="Run the prediction client using the specified file", action="store", default=None)
 
     # parse the input arguments 
     args = parser.parse_args()
 
-    filename = args.filename
-
     if args.cli:
         run_prediction_client()
-    elif args.filename:
+    elif args.file:
         # get the filename from the command line
-        file_name = filename
+        file_name = args.file
         logger.info(f"file name: {file_name}")
         run_prediction_client_with_file(file_name)
     else:
-        pass
+        logger.error("Please specify either -cli or -file")
+
+   

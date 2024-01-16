@@ -9,7 +9,7 @@ from gcp_utils.settings import (
     logger
 )
 from gcp_utils import bq
-from gcp_utils.utils import tznow, duck_str
+from gcp_utils.utils import tznow, duck_str, timing
 
 
 from POSCAR_generator import generate_poscar_files, write_vasp
@@ -33,6 +33,7 @@ class output_message:
     energy: float
     poscar_file: List[str]
 
+@timing
 def process_message(message):
 
     logging.info(f'dataclass input:{message}')
@@ -52,7 +53,7 @@ def process_message(message):
     logging.info(f'dataclass output:{output}')
 
     # store results in BQ
-    store_results(output)
+    #store_results(output)
 
     return output
 
