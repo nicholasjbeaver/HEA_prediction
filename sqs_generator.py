@@ -58,6 +58,10 @@ def cint_sqs(primitive_structure):
 
 if __name__ == '__main__':
 
+    # set up logging to log time and module
+    logging.basicConfig(format='%(process)d: %(asctime)s: %(levelname)s: %(funcName)s: %(message)s', level=logging.INFO)
+
+    # create a disordered V-Co-Ni FCC structure
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
 
     logging.info("Creating a disordered V-Co-Ni FCC structure")
