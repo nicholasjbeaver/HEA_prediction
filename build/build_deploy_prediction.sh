@@ -23,7 +23,7 @@ cp "$CK_INGEST_DIR/build/Dockerfile" "$CK_DIR/Dockerfile"
 # shellcheck disable=SC1101
 if [ "$CLOUD_BUILD" == "true" ]; then
   gcloud builds submit "$CK_DIR" \
-    --tag "us-central1-docker.pkg.dev/phase-predition/containers/${CKBASE}-ingest" \
+    --tag "us-central1-docker.pkg.dev/phase-predition/containers/prediction-server-$CKBASE" \
     --region us-central1
 else
   # to test build locally:

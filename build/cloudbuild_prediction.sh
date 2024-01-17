@@ -5,23 +5,39 @@
 
 # set -x
 
-# Clone the repository from GitHub, create it if it doesn't exist
-if [ ! -d "HEA_prediction_build" ]; then
-    echo "Cloning repository"
-    git clone https://github.com/nicholasjbeaver/HEA_prediction HEA_prediction_build
+# Set the environment variable
+ENV=$1
+
+# if it is set and is equal to "PROD", set it to "PROD", else set it to TEST
+if [ "$ENV" = "PROD" ]; then
+    ENV="PROD"
+else
+    ENV="TEST"
 fi
 
-cd HEA_prediction_build
+# Set the build directory so it is unique for each environment
+BUILD_DIR="HEA_prediction_${ENV}"
+echo "Building for environment: $ENV in directory: ${BUILD_DIR}"
 
-# Checkout the main branch
-git checkout main
-git pull origin main
+
+# Clone the repository from GitHub, create it if it doesn't exist
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "Cloning repository"
+    git clone https://github.com/nicholasjbeaver/HEA_prediction "$BUILD_DIR"
+    # Checkout the main branch
+    git checkout main
+    git pull origin main
+else
+    echo "Repository already exists, will build with existing files"
+fi
+
+cd "$BUILD_DIR"
 
 # Navigate to correct directory
 cd build
 
 # Submit the build with the environment value as a substitution
-# gcloud builds submit --region=us-central1 --config cloudbuild_ingest.yaml --substitutions=_TESTING="$TESTING" .
+# gcloud builds submit --region=us-central1 --config cloudbuild_ingest.yaml --substitutions=_ENV="$ENV" .
 
 # call build_deploy-ingest.sh script with environment value as parameter
 # source ./build_deploy_prediction.sh "TESTING"=$TESTING

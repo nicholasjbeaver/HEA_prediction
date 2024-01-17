@@ -4,6 +4,6 @@ steps:
   args:
   - '-c'
   - |
-    source ./build/build_deploy_prediction.sh ${_TESTING}
+    source ./build/build_deploy_prediction.sh ${_ENV}
 substitutions:
-  _TESTING: true
+  _ENV: TEST
