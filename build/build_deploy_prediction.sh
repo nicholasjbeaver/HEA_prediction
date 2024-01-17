@@ -11,20 +11,22 @@ else
     CLOUD_BUILD="false"
 fi
 
-# see what ENV we are building, check ENV variable
+# see what ENV we are building, check ENV variable, default to TEST
 if [ $ENV == "PROD" ]; then
   ENV="PROD"
 else
   ENV="TEST"
 fi
 
-# find out the name of the directory containing this script
+# find out the name of the directory containing this script (BUILD_DIR) 
 BUILD_DIR="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
+# and the parent directory containing that (i.e., the PROJECT_DIR)
 PROJECT_DIR="$(dirname "${BUILD_DIR}")"
 
+echo "Using scripts from ${BUILD_DIR}"
 
-echo $BUILD_DIR
-cp "${BUILD_DIR}/build/Dockerfile" "${PROJECT_DIR}/Dockerfile"
+# copy the Dockerfile from the build directory to the project directory...needs to be at top level
+# cp "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}/Dockerfile"
 
 # shellcheck disable=SC1101
 if [ "$CLOUD_BUILD" == "true" ]; then
@@ -32,17 +34,22 @@ if [ "$CLOUD_BUILD" == "true" ]; then
     --tag "us-central1-docker.pkg.dev/phase-predition/containers/prediction-server-${ENV}" \
     --region us-central1
 else
+
+  DOCKER_IMAGE="prediction-server-${ENV}"
+  REPO_NAME="us-central1-docker.pkg.dev/phase-predition/containers"
   # to test build locally:
-  docker build -t "prediction-server-${ENV}" -f "./Dockerfile" "${PROJECT_DIR}"
+  docker build -t "${DOCKER_IMAGE}" -f "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}"
+
+  docker tag ${DOCKER_IMAGE} ${REPO_NAME}/${DOCKER_IMAGE}
 
   # push docker image to cloud artifact registry
-
+  docker push "${REPO_NAME}/${DOCKER_IMAGE}"
 
 fi
 
 BUILD_STATUS=$?
 
-rm -f "${PROJECT_DIR}/Dockerfile"
+# rm -f "${PROJECT_DIR}/Dockerfile"
 
 # Check the exit status
 if ! [ $BUILD_STATUS -eq 0 ]; then
