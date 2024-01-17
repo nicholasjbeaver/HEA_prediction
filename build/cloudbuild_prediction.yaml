@@ -4,7 +4,6 @@ steps:
   args:
   - '-c'
   - |
-    cd corpuskeeper/rag
-    source ./build/build_deploy_ingest.sh ${_ENV}
+    source ./build/build_deploy_prediction.sh ${_TESTING}
 substitutions:
-  _ENV: dev
+  _TESTING: true

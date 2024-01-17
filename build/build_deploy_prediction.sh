@@ -40,21 +40,7 @@ if ! [ $BUILD_STATUS -eq 0 ]; then
 fi
 
 # if we get here, build succeeded, but do not auto deploy for now
-echo "Build succeeded...not deploying."
+echo "Build succeeded...ready to deploy."
 exit 0
 
-echo "Build succeeded...deploying."
-
-# always have one production server running, but can scale down to zero for dev
-if [ "$ENV" == "prod" ]; then MIN_INSTANCES=0; else MIN_INSTANCES=0; fi
-gcloud run deploy ${CKBASE}-ingest \
-  --image "us-central1-docker.pkg.dev/phase-prediction/containers/prediction_server" \
-  --allow-unauthenticated \
-  --region us-central1 \
-  --labels "env=${ENV}" \
-  --min-instances ${MIN_INSTANCES} \
-  --max-instances 10 \
-  --timeout 600 \
-  --memory 2Gi \
-  --set-env-vars "ENV=${ENV},GOOGLE_CLOUD_PROJECT=phase-prediction"
-
+# eventually this will push out to instance group

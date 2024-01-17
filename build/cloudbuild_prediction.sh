@@ -1,32 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Use cloudbuild to build and deploy the prediction service
+#
 
-# Set the project for the gcloud command
-gcloud config set project gpt-funhouse
+# set -x
 
-# Clone the repository from Google Cloud Source Repositories if it doesn't exist
-if [ ! -d "github_blestxventures_gpt-funhouse" ]; then
-    gcloud source repos clone github_blestxventures_gpt-funhouse --project=gpt-funhouse
+# Clone the repository from GitHub, create it if it doesn't exist
+if [ ! -d "HEA_prediction_build" ]; then
+    echo "Cloning repository"
+    git clone https://github.com/nicholasjbeaver/HEA_prediction HEA_prediction_build
 fi
 
-cd github_blestxventures_gpt-funhouse
+cd HEA_prediction_build
+
+# Checkout the main branch
 git checkout main
 git pull origin main
 
 # Navigate to correct directory
-cd corpuskeeper/rag
-
-# Check if a parameter was passed to the script
-if [ $# -eq 0 ]; then
-    echo "No environment value provided, creating dev version"
-    ENV_VALUE="dev"
-else
-    # Use the first parameter as the environment value
-    ENV_VALUE=$1
-fi
+cd build
 
 # Submit the build with the environment value as a substitution
-#gcloud builds submit --region=us-central1 --config cloudbuild_ingest.yaml --substitutions=_ENV="$ENV_VALUE" .
+# gcloud builds submit --region=us-central1 --config cloudbuild_ingest.yaml --substitutions=_TESTING="$TESTING" .
 
 # call build_deploy-ingest.sh script with environment value as parameter
-source ./build_deploy_ingest.sh "$ENV_VALUE"
-
+# source ./build_deploy_prediction.sh "TESTING"=$TESTING
+echo "Done"
