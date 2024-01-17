@@ -30,15 +30,16 @@ echo "Using scripts from ${BUILD_DIR} to build from ${PROJECT_DIR}"
 # copy the Dockerfile from the build directory to the project directory...needs to be at top level
 # cp "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}/Dockerfile"
 
+DOCKER_IMAGE="prediction-server-${ENV}"
+REPO_NAME="us-central1-docker.pkg.dev/phase-prediction/containers"
+
 # shellcheck disable=SC1101
 if [ "$CLOUD_BUILD" == "true" ]; then
   gcloud builds submit "$PROJECT_DIR" \
-    --tag "us-central1-docker.pkg.dev/phase-predition/containers/prediction-server-${ENV}" \
+    --tag "${REPO_NAME}/${DOCKER_IMAGE}" \
     --region us-central1
+    
 else
-
-  DOCKER_IMAGE="prediction-server-${ENV}"
-  REPO_NAME="us-central1-docker.pkg.dev/phase-predition/containers"
   # to test build locally:
   docker build -t "${DOCKER_IMAGE}" -f "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}"
 

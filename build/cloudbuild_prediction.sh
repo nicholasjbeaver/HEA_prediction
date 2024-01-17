@@ -36,12 +36,9 @@ fi
 
 cd "$BUILD_DIR"
 
-# Navigate to correct directory
-cd build
-
 # Submit the build with the environment value as a substitution
 # gcloud builds submit --region=us-central1 --config cloudbuild_ingest.yaml --substitutions=_ENV="$ENV" .
 
 # call build_deploy-ingest.sh script with environment value as parameter
-# source ./build_deploy_prediction.sh "TESTING"=$TESTING
+# source ./build_deploy_prediction.sh
 echo "Done"
