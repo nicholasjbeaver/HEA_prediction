@@ -24,6 +24,9 @@ echo "Building for environment: $ENV in directory: ${BUILD_DIR}"
 if [ ! -d "$BUILD_DIR" ]; then
     echo "Cloning repository"
     git clone https://github.com/nicholasjbeaver/HEA_prediction "$BUILD_DIR"
+
+    cd "$BUILD_DIR"
+
     # Checkout the main branch
     git checkout main
     git pull origin main
