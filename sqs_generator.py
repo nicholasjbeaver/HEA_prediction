@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from pymatgen.core import Lattice, Structure
 from smol.capp.generate.special.sqs import StochasticSQSGenerator
+import logging
 
 def corr_sqs(primitive_structure):
 
@@ -59,6 +60,8 @@ if __name__ == '__main__':
 
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
 
+    logging.info("Creating a disordered V-Co-Ni FCC structure")
+
     # create a disordered V-Co-Ni FCC structure
     structure = Structure.from_spacegroup(
         "Fm-3m",
@@ -66,11 +69,16 @@ if __name__ == '__main__':
         species=[composition],
         coords=[[0, 0, 0]]    )
 
+    logging.info("Getting primitive structure")
+
 
     primitive_structure = structure.get_primitive_structure()
 
+    logging.info("Generating SQS")
+
+
     sqs_list = cint_sqs(primitive_structure)
 
-    print(sqs_list)
+    logging.info(  sqs_list)
 
 
