@@ -6,4 +6,4 @@ steps:
   - |
     source ./build/build_deploy_prediction.sh ${_ENV}
 substitutions:
-  _ENV: TEST
+  _ENV: test

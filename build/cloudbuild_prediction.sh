@@ -9,10 +9,10 @@
 ENV=$1
 
 # if it is set and is equal to "PROD", set it to "PROD", else set it to TEST
-if [ "$ENV" = "PROD" ]; then
-    ENV="PROD"
+if [ "$ENV" = "prod" ]; then
+    ENV="prod"
 else
-    ENV="TEST"
+    ENV="test"
 fi
 
 # Set the build directory so it is unique for each environment
