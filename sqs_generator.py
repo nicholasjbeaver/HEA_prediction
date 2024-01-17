@@ -32,6 +32,9 @@ def corr_sqs(primitive_structure):
 
 def cint_sqs(primitive_structure):
 
+    
+    logging.info("Creationg a Stochastic SQS generator")    
+
     # create a cluster interaction vector based SQS generator
     generator_cint = StochasticSQSGenerator.from_structure(
         structure=primitive_structure,
@@ -41,6 +44,7 @@ def cint_sqs(primitive_structure):
         match_weight=1.0,
     )
 
+    logging.info("Generating a bunch of SQS")
     # generate SQS using cluster interaction vector based score
     generator_cint.generate(
         mcmc_steps=100000, # steps per temperature
@@ -79,7 +83,6 @@ if __name__ == '__main__':
     primitive_structure = structure.get_primitive_structure()
 
     logging.info("Generating SQS")
-
 
     sqs_list = cint_sqs(primitive_structure)
 
