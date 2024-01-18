@@ -21,38 +21,43 @@ fi
 # find out the name of the directory containing this script (BUILD_DIR)
 BUILD_DIR="$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1
 
-PROJECT_DIR="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 # and the parent directory containing that (i.e., the PROJECT_DIR)
-ROOT_DIR="$(dirname "${BUILD_DIR}")"
+PROJECT_DIR="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 
-echo "Using scripts from ${BUILD_DIR} to build from ${PROJECT_DIR}"
-
-# copy the Dockerfile from the build directory to the project directory...needs to be at top level
-# cp "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}/Dockerfile"
+echo "Using scripts from ${BUILD_DIR} to build ${DOCKER_IMAGE} using project files from ${PROJECT_DIR}"
 
 DOCKER_IMAGE="prediction-server-${ENV}"
 REPO_NAME="us-central1-docker.pkg.dev/phase-prediction/containers"
 
 # shellcheck disable=SC1101
 if [ "$CLOUD_BUILD" == "true" ]; then
+
+  # cloud build requires a Dockerfile in the project directory
+  cp ${BUILD_DIR}/Dockerfile "${PROJECT_DIR}"
+
   gcloud builds submit "$PROJECT_DIR" \
     --tag "${REPO_NAME}/${DOCKER_IMAGE}" \
     --region us-central1
-    
+
+  # get the exit status of the build
+  BUILD_STATUS=$?
+
+  # remove the temporary Dockerfile
+  rm -f "${PROJECT_DIR}/Dockerfile"
+
+
 else
   # to test build locally:
   docker build -t "${DOCKER_IMAGE}" -f "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}"
 
-  docker tag ${DOCKER_IMAGE} ${REPO_NAME}/${DOCKER_IMAGE}
+  # get the exit status of the build
+  BUILD_STATUS=$?
 
   # push docker image to cloud artifact registry
+  docker tag "${DOCKER_IMAGE} ${REPO_NAME}/${DOCKER_IMAGE}"
   docker push "${REPO_NAME}/${DOCKER_IMAGE}"
 
 fi
-
-BUILD_STATUS=$?
-
-# rm -f "${PROJECT_DIR}/Dockerfile"
 
 # Check the exit status
 if ! [ $BUILD_STATUS -eq 0 ]; then
