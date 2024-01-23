@@ -18,14 +18,13 @@ from google.api_core.exceptions import DeadlineExceeded
 from gcp_utils.settings import (
     GOOGLE_CLOUD_PROJECT,
     GOOGLE_COMPUTE_REGION,
-    GOOGLE_PUBSUB_TOPIC,
-    logger
+    GOOGLE_PUBSUB_TOPIC
 )
-from gcp_utils import pubsub
+from gcp_utils import gcp
 import cloud_processor
 
 # set the logging level to always be DEBUG in this module
-logger.setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.INFO)
 
 #TODO: test preemptive logic
 #TODO: look at article about extend ACK time: https://cloud.google.com/pubsub/docs/lease-management?&_ga=2.61453679.-237567142.1575920178#lease_management_configuration
@@ -38,15 +37,18 @@ def run_prediction_server():
 
     # Define your data and attributes.  These are optional and only used for filtering messages.
     attributes = {}
-    sub_topic_id = GOOGLE_PUBSUB_TOPIC 
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC 
 
     subscriber = pubsub_v1.SubscriberClient(credentials=gcp.credentials())
+    subscription_path = "projects/phase-prediction/subscriptions/prediction_topic-prediction_server"
+    logging.info(f'Using subscription path: {subscription_path}')
 
-    logger.info(f"Creating a subscription for topic: {sub_topic_id}")
-    subscription_path = subscription(topic_id=topic_id, subscription_id="prediction_server", project_id=project_id, **attributes)
-    logger.debug(f'Created a subscription path: {subscription_path}')
- 
+    # make sure subscription exists, it must exist for this to work.
+    try:
+        result = subscriber.get_subscription(request={"subscription": subscription_path,})
+    except NotFound:
+        logging.error(f'Subscription path not found: {subscription_path}')
+        exit(1)
+    
     try:
         # Event meant to hold the state as to whether need to stop processing.
         stop_event = threading.Event()
@@ -55,7 +57,7 @@ def run_prediction_server():
         # loop until receiving a signal to exit.
         while True:
             # Pull a message from PubSub queue
-            logging.debug(f"Pull messages: on {pub_topic_id} using subscription {subscription_id}")
+            logging.info(f"Pull messages: from {subscription_path}")
 
             try:
                 response = subscriber.pull(
@@ -70,10 +72,9 @@ def run_prediction_server():
 
             # Serially process (i.e., one at a time) all the messages received, there will be no messages if it times out.
             # If the max_messages = 1, then there will only be one message, but looping just in case max_messages isn't 1 above.
-            received = []
             if response and response.received_messages:
                 for received_message in response.received_messages:
-                    logging.debug(f"[pubsub] PULL: %s (%s)", 
+                    logging.debug(f"PULLED: %s (%s)", 
                         repr(received_message.message.data),
                         repr(received_message.message.attributes))
  
@@ -82,34 +83,37 @@ def run_prediction_server():
 
                     keep_alive_thread = threading.Thread(
                         target=extend_ack_deadline, 
-                        args=(received_message, ack_extension_period, stop_event)
+                        args=(subscriber, subscription_path, received_message, ack_extension_period, stop_event)
                     )
 
                     # Start the thread, this will run in parallel as the message is being processed
                     keep_alive_thread.start()
 
                     # convert message.text to a dataclass
-                    data = cloud_processor.input_message(**json.loads(message.text))
+                    data = cloud_processor.input_message(**json.loads(received_message.message.data.decode('utf-8')))
 
                     # process the message
+                    logging.info(f'Processing message: {data}')
                     cloud_processor.process_message(data)
 
                     # ack the message, only ack the message if successfully processed.
-                    logging.info(f'Acking message: {receivedmessage.message_id}, message.ack_id: {receivedmessage.ack_id}')
-                    received_message.ack()
+                    logging.debug(f'ACKing message.ack_id: {received_message.ack_id}')
+                    subscriber.acknowledge(subscription=subscription_path, ack_ids=[received_message.ack_id])
+
                 
                     # Set the stop event so the keep-alive thread will stop
                     stop_event.set()  # a small race condition exists.  If a sigint is received after the ack but before this, it may cause problems.
 
                     # Wait for the thread to finish
                     keep_alive_thread.join()
+                    logging.debug(f"Keep-alive thread finished, continue with next pull")
  
 
     except KeyboardInterrupt:
-        logger.info(f'keyboard interrupt received...exiting')
+        logging.info(f'keyboard interrupt received...exiting')
         check_preemption()
     except Exception as e:
-        logger.exception(e)
+        logging.exception(e)
     finally:
         # Signal the keep-alive thread to stop and wait for it to finish
         # This should cause a timeout on any retrieved messages that were not ack'd due to being interrupted.
@@ -118,7 +122,7 @@ def run_prediction_server():
             logging.debug(f"Joining keep-alive thread")       
             keep_alive_thread.join()
 
-def extend_ack_deadline(message, ack_extension_period, stop_event):
+def extend_ack_deadline(subscriber, subscription_path, message, ack_extension_period, stop_event):
     """
     Periodically extends the ack deadline of a message until stop_event is set.
     
@@ -127,7 +131,12 @@ def extend_ack_deadline(message, ack_extension_period, stop_event):
     ack_period = ack_extension_period / 2
 
     while not stop_event.is_set():
-        message.modify_ack_deadline(ack_extension_period)
+        subscriber.modify_ack_deadline(
+            subscription=subscription_path,
+            ack_ids=[message.ack_id],
+            ack_deadline_seconds=ack_period
+        )
+
         logging.debug(f"Extended ACK deadline for message: {message.message_id} to {ack_period} seconds.")
         time.sleep(ack_period)
 
