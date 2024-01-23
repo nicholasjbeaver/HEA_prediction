@@ -1,0 +1,177 @@
+# import standard modules
+import logging
+import sys
+import json
+import os
+import argparse
+import time
+from dataclasses import dataclass, asdict
+import threading
+
+# import 3rd party modules
+
+# import local modules
+from gcp_utils.settings import (
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_COMPUTE_REGION,
+    GOOGLE_PUBSUB_TOPIC,
+    logger
+)
+
+# import common modules
+from gcp_utils import pubsub
+import cloud_processor
+
+# set the logging level to always be DEBUG in this module
+logger.setLevel(logging.DEBUG)
+
+# TODO explicitly ack after completion and set timeout to a large value
+
+def run_prediction_server():
+    # Define your data and attributes.  These are optional and only used for filtering messages.
+    attributes = {}
+    sub_topic_id = GOOGLE_PUBSUB_TOPIC 
+    pub_topic_id = GOOGLE_PUBSUB_TOPIC 
+
+    logger.info(f"Creating a subscription for topic: {sub_topic_id}")
+    subscription_id = pubsub.subscription(topic_id=sub_topic_id, subscription_id="prediction_server", **attributes)
+
+    logger.debug(f'Created a subscription: {subscription_id}')
+    #pubsub.delete_when_done(name=subscription_id)
+
+    # loop until receiving a signal to exit.
+    try:
+        while True:
+            # Pull the message
+            logging.debug(f"Pull messages: on {pub_topic_id} using subscription {subscription_id}")
+            messages = pubsub.pull(topic_id=sub_topic_id, subscription_id=subscription_id, max_messages=1, timeout=30)
+
+            # Print the messages
+            for message in messages:
+                logger.info(f'Received message: {message.text} with attributes: {message.attributes}')
+
+                # convert message.text to a dataclass
+                data = cloud_processor.input_message(**json.loads(message.text))
+
+                # process the message
+                cloud_processor.process_message(data)
+
+            # sleep for 5 seconds
+            #logger.debug(f'Sleeping for 5 seconds')
+            #time.sleep(5)
+
+    except Exception as e:
+        logger.exception(e)
+    except KeyboardInterrupt:
+        logger.info(f'keyboard interrupt received...exiting')
+
+    # delete the subscription
+    #logger.info(f'deleting subscription: {subscription_id}')
+    #pubsub.delete(name=subscription_id)
+
+
+# main function
+if __name__ == "__main__":
+
+    # check input flags for --server
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--server", help="Run the prediction server", action="store_true", default=True)
+
+    # parse the input arguments 
+    args = parser.parse_args()
+
+    if args.server:
+        run_prediction_server()
+
+    # exit the program
+    sys.exit(0)
+
+
+
+# Initialize a Subscriber client
+subscriber = pubsub_v1.SubscriberClient()
+subscription_path = subscriber.subscription_path('your-project-id', 'your-subscription-id')
+
+def extend_ack_deadline(message, ack_extension_period, stop_event):
+    """
+    Periodically extends the ack deadline of a message until stop_event is set.
+    """
+    while not stop_event.is_set():
+        message.modify_ack_deadline(ack_extension_period)
+        time.sleep(ack_extension_period / 2)
+
+def callback(message):
+    print(f"Received message: {message.data}")
+
+    # Event to signal when to stop extending the ack deadline
+    stop_event = threading.Event()
+
+    # Start a thread to keep extending the message's ack deadline
+    ack_extension_period = 30  # seconds
+    keep_alive_thread = threading.Thread(
+        target=extend_ack_deadline, 
+        args=(message, ack_extension_period, stop_event)
+    )
+    keep_alive_thread.start()
+
+    try:
+        # Process the message
+        # ... (your processing logic here)
+
+        # Acknowledge the message after processing
+        message.ack()
+    finally:
+        # Signal the keep-alive thread to stop and wait for it to finish
+        stop_event.set()
+        keep_alive_thread.join()
+
+# Subscribe to the subscription
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
+
+# Keep the main thread running to listen for messages
+try:
+    streaming_pull_future.result()
+except KeyboardInterrupt:
+    streaming_pull_future.cancel()
+
+    
+import requests
+import time
+import signal
+import sys
+
+METADATA_URL = "http://metadata.google.internal/computeMetadata/v1/instance/preempted"
+HEADERS = {"Metadata-Flavor": "Google"}
+
+def check_preemption():
+    """
+    Checks the instance's metadata for a preemption notice.
+    """
+    try:
+        response = requests.get(METADATA_URL, headers=HEADERS)
+        if response.text == "TRUE":
+            print("Preemption notice received. Preparing to shutdown.")
+            # Perform any cleanup or shutdown tasks here
+            sys.exit(0)
+    except requests.RequestException as e:
+        print(f"Error checking preemption status: {e}")
+
+def signal_handler(signum, frame):
+    """
+    Handles interrupt signals to gracefully exit.
+    """
+    print("Interrupt received. Exiting.")
+    sys.exit(0)
+
+def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    print("Starting preemption monitoring...")
+
+    while True:
+        check_preemption()
+        time.sleep(5)  # Check every 5 seconds
+
+if __name__ == "__main__":
+    main()
