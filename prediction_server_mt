@@ -32,7 +32,8 @@ logger.setLevel(logging.DEBUG)
 #TODO: test preemptive logic
 #TODO: look at article about extend ACK time: https://cloud.google.com/pubsub/docs/lease-management?&_ga=2.61453679.-237567142.1575920178#lease_management_configuration
 #TODO: Reduce the ACK timeout on the subscription so it will be reassigned to another server.
-#TODO: Destroy the thread
+#TODO: Destroy the thread?
+#TODO: Should we interogate the subscription and see what the timeout is so can set the keep alive to an appropriate value?
 
 def run_prediction_server():
     """
@@ -60,6 +61,8 @@ def run_prediction_server():
 
         # loop until receiving a signal to exit.
         while True:
+            stop_event.clear()
+
             # Pull a message from PubSub queue
             logger.info(f"Pull messages: from {subscription_path}")
 
