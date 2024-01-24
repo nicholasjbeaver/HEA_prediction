@@ -52,7 +52,7 @@ def supercell_from_ase(alloy, crystal):
         size = [10, 5, 5]
 
 
-    structure = crystal(elements, spacegroup=spacegroup, size=size)
+    structure = crystal(symbols=elements, spacegroup=spacegroup, size=size)
 
 '''
 def random_structure(alloy, crystal):
@@ -82,16 +82,19 @@ def random_structure(alloy, crystal):
 '''
 
 
-if __name__ =='main':
+if __name__ =='__main__':
+    
     '''
-    alloy = 'FeCrCuNi'
+    
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
     atoms = jvs_from_pmg_disordered_structure(composition, 'FCC')
     print(atoms)
     '''
-
+    alloy = 'FeCrCuNi'
+    print('doing it')
     ase = supercell_from_ase(alloy, 'FCC')
     print(ase)
+
     '''
     jvs = random_structure('FeNiCuTiSi', 'FCC')
     print(f'pyxtal{jvs}')
