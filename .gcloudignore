@@ -13,7 +13,6 @@ __pycache__
 dist/
 *.dist-info/
 *.lock
-*.txt
 *.yaml
 *.yml
 !app.yaml

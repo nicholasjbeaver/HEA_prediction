@@ -1,32 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Use cloudbuild to build and deploy the prediction service
+#
 
-# Set the project for the gcloud command
-gcloud config set project gpt-funhouse
+# set -x
 
-# Clone the repository from Google Cloud Source Repositories if it doesn't exist
-if [ ! -d "github_blestxventures_gpt-funhouse" ]; then
-    gcloud source repos clone github_blestxventures_gpt-funhouse --project=gpt-funhouse
+# Set the environment variable
+ENV=$1
+
+# if it is set and is equal to "PROD", set it to "PROD", else set it to TEST
+if [ "$ENV" = "prod" ]; then
+    ENV="prod"
+else
+    ENV="test"
 fi
 
-cd github_blestxventures_gpt-funhouse
-git checkout main
-git pull origin main
+# Set the build directory so it is unique for each environment
+PROJECT_DIR="HEA_prediction_${ENV}"
+echo "Building for environment: $ENV in directory: ${PROJECT_DIR}"
 
-# Navigate to correct directory
-cd corpuskeeper/rag
+# Clone the repository from GitHub, create it if it doesn't exist
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo "Cloning repository into ${PROJECT_DIR}"
+    git clone https://github.com/nicholasjbeaver/HEA_prediction "$PROJECT_DIR"
 
-# Check if a parameter was passed to the script
-if [ $# -eq 0 ]; then
-    echo "No environment value provided, creating dev version"
-    ENV_VALUE="dev"
+    cd "$PROJECT_DIR"
+
+    # Checkout the main branch
+    git checkout main
+    git pull origin main
 else
-    # Use the first parameter as the environment value
-    ENV_VALUE=$1
+    echo "Repository already exists, will build with existing files in ${PROJECT_DIR}"
+    cd "$PROJECT_DIR"
 fi
 
 # Submit the build with the environment value as a substitution
-#gcloud builds submit --region=us-central1 --config cloudbuild_ingest.yaml --substitutions=_ENV="$ENV_VALUE" .
+gcloud builds submit --region=us-central1 --config "./build/cloudbuild_prediction.yaml" --substitutions=_ENV="$ENV" .
 
-# call build_deploy-ingest.sh script with environment value as parameter
-source ./build_deploy_ingest.sh "$ENV_VALUE"
-
+echo "Done"

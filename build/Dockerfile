@@ -25,6 +25,9 @@ WORKDIR $APP_HOME
 # Add gcp_utils to PYTHONPATH, so it will look for modules there.
 ENV PYTHONPATH "${PYTHONPATH}:${APP_HOME}/gcp_utils"
 
+# Hard code the project id
+ENV GOOGLE_CLOUD_PROJECT phase-prediction
+
 # Copy application dependency manifests to the container image.
 # Copying this separately prevents re-running pip install on every code change.
 COPY requirements.txt $APP_HOME/requirements.txt

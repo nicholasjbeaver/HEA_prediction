@@ -11,3 +11,5 @@ google-cloud-secret-manager==2.16.1
 google-cloud-storage==2.8.0
 
 werkzeug
+pymatgen==2023.12.18
+smol==0.5.3

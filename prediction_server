@@ -6,6 +6,10 @@ import os
 import argparse
 import time
 from dataclasses import dataclass, asdict
+import threading
+import requests
+from google.cloud import pubsub_v1
+from google.api_core.exceptions import DeadlineExceeded
 
 
 # import 3rd party modules
@@ -17,74 +21,169 @@ from gcp_utils.settings import (
     GOOGLE_PUBSUB_TOPIC,
     logger
 )
-
-# import common modules
-from gcp_utils import pubsub
+from gcp_utils import gcp
 import cloud_processor
 
-# set the logging level to always be DEBUG in this module
+# set the default logging format and to only log errors.  logging level is overridden in each module if desired
+logging.basicConfig(format='%(process)d: %(asctime)s: %(levelname)s: %(funcName)s: %(message)s', level=logging.ERROR)
+logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-# TODO explicitly ack after completion and set timeout to a large value
+#TODO: test preemptive logic
+#TODO: look at article about extend ACK time: https://cloud.google.com/pubsub/docs/lease-management?&_ga=2.61453679.-237567142.1575920178#lease_management_configuration
+#TODO: Reduce the ACK timeout on the subscription so it will be reassigned to another server.
+#TODO: Destroy the thread?
+#TODO: Should we interogate the subscription and see what the timeout is so can set the keep alive to an appropriate value?
 
 def run_prediction_server():
+    """
+        Loop pulling messages until interrupted.
+    """
+
     # Define your data and attributes.  These are optional and only used for filtering messages.
     attributes = {}
-    sub_topic_id = GOOGLE_PUBSUB_TOPIC 
-    pub_topic_id = GOOGLE_PUBSUB_TOPIC 
 
-    logger.info(f"Creating a subscription for topic: {sub_topic_id}")
-    subscription_id = pubsub.subscription(topic_id=sub_topic_id, subscription_id="prediction_server", **attributes)
+    subscriber = pubsub_v1.SubscriberClient(credentials=gcp.credentials())
+    subscription_path = "projects/phase-prediction/subscriptions/prediction_topic-prediction_server"
 
-    logger.debug(f'Created a subscription: {subscription_id}')
-    #pubsub.delete_when_done(name=subscription_id)
-
-    # loop until receiving a signal to exit.
+    # make sure subscription exists, it must exist for this to work.
     try:
+        result = subscriber.get_subscription(request={"subscription": subscription_path,})
+        logger.info(f'Using subscription path: {subscription_path}')
+    except NotFound:
+        logger.error(f'Subscription path not found: {subscription_path}')
+        exit(1)
+    
+    try:
+        # Event meant to hold the state as to whether need to stop processing.
+        stop_event = threading.Event()
+        keep_alive_thread = None
+
+        # loop until receiving a signal to exit.
         while True:
-            # Pull the message
-            logging.debug(f"Pull messages: on {pub_topic_id} using subscription {subscription_id}")
-            messages = pubsub.pull(topic_id=sub_topic_id, subscription_id=subscription_id, max_messages=1, timeout=30)
+            stop_event.clear()
 
-            # Print the messages
-            for message in messages:
-                logger.info(f'Received message: {message.text} with attributes: {message.attributes}')
+            # Pull a message from PubSub queue
+            logger.info(f"Pull messages: from {subscription_path}")
 
-                # convert message.text to a dataclass
-                data = cloud_processor.input_message(**json.loads(message.text))
+            try:
+                response = subscriber.pull(
+                    request={
+                        "subscription": subscription_path,
+                        "max_messages": 1,   # pull 1 message at a time
+                    },
+                    timeout=60,  # wait for this amount of seconds for a message.
+                )
+            except DeadlineExceeded:
+                response = None
+                logger.debug(f"No messages received in timeout period")
+            except Exception as e:
+                logger.error(f'Exception occurred during PubSub pull {e}')
 
-                # process the message
-                cloud_processor.process_message(data)
+            # Serially process (i.e., one at a time) all the messages received, there will be no messages if it times out.
+            # If the max_messages = 1, then there will only be one message, but looping just in case max_messages isn't 1 above.
+            if response and response.received_messages:
+                for received_message in response.received_messages:
+                    logger.info(f"PULLED: %s (%s)", 
+                        repr(received_message.message.data),
+                        repr(received_message.message.attributes))
+ 
+                    # Start a thread to keep extending the message's ack deadline to PubSub so it will not redistribute message to another server.
+                    ack_extension_period = 30  # it will extend the ACK deadline every X seconds
 
-            # sleep for 5 seconds
-            #logger.debug(f'Sleeping for 5 seconds')
-            #time.sleep(5)
+                    keep_alive_thread = threading.Thread(
+                        target=extend_ack_deadline, 
+                        args=(subscriber, subscription_path, received_message, ack_extension_period, stop_event)
+                    )
 
-    except Exception as e:
-        logger.exception(e)
+                    # Start the thread, this will run in parallel as the message is being processed
+                    keep_alive_thread.start()
+
+                    # convert message.text to a dataclass
+                    data = cloud_processor.input_message(**json.loads(received_message.message.data.decode('utf-8')))
+
+                    # process the message
+                    logger.info(f'Processing message: {data}')
+                    cloud_processor.process_message(data)
+
+                    # ack the message, only ack the message if successfully processed.
+                    logger.info(f'ACKing message.ack_id: {received_message.ack_id}')
+                    subscriber.acknowledge(subscription=subscription_path, ack_ids=[received_message.ack_id])
+
+                
+                    # Set the stop event so the keep-alive thread will stop
+                    stop_event.set()  # a small race condition exists.  If a sigint is received after the ack but before this, it may cause problems.
+
+                    # Wait for the thread to finish
+                    keep_alive_thread.join()
+                    logger.info(f"Keep-alive thread finished, continue with next pull")
+ 
+
     except KeyboardInterrupt:
         logger.info(f'keyboard interrupt received...exiting')
+        check_preemption()
+    except Exception as e:
+        logger.error(f'Exception occurred {e}')
+    finally:
+        # Signal the keep-alive thread to stop and wait for it to finish
+        # This should cause a timeout on any retrieved messages that were not ack'd due to being interrupted.
+        stop_event.set()
+        if keep_alive_thread is not None:
+            logger.info(f"Joining keep-alive thread")       
+            keep_alive_thread.join()
 
-    # delete the subscription
-    #logger.info(f'deleting subscription: {subscription_id}')
-    #pubsub.delete(name=subscription_id)
+def extend_ack_deadline(subscriber, subscription_path, message, ack_extension_period, stop_event):
+    """
+    Periodically extends the ack deadline of a message until stop_event is set.
+    
+    ack_extension_period should be relatively short so this thread will finish 
+    """
+    ack_period = int(ack_extension_period / 2)
+
+    while not stop_event.is_set():
+
+        try:
+            subscriber.modify_ack_deadline(
+                subscription=subscription_path,
+                ack_ids=[message.ack_id],
+                ack_deadline_seconds=ack_period
+            )
+            logger.info(f"Extended ACK deadline for message: {message.message.message_id} to {ack_period} seconds.")
+
+        except Exception as e:
+            logger.error(f"Error extending ACK deadline for message: {message.message.message_id}: {e}")
+
+        stop_event.wait(ack_period)
+
+
+def check_preemption():
+    """
+    Checks the instance's metadata for a preemption notice.  This isn't required but will help log with GCE pre-empts this server.
+    """
+    METADATA_URL = "http://metadata.google.internal/computeMetadata/v1/instance/preempted"
+    HEADERS = {"Metadata-Flavor": "Google"}
+
+    try:
+        response = requests.get(METADATA_URL, headers=HEADERS)
+        if response.text == "TRUE":
+            logger.info("Preemption notice received. Preparing to shutdown.")
+    except requests.RequestException as e:
+        logger.error(f"Error checking preemption status: {e}")
 
 
 # main function
 if __name__ == "__main__":
 
-    # check input flags for --server
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--server", help="Run the prediction server", action="store_true", default=True)
-
-    # parse the input arguments 
-    args = parser.parse_args()
-
-    if args.server:
-        run_prediction_server()
+    logger.info(f"Starting prediction server")
+    run_prediction_server()
 
     # exit the program
     sys.exit(0)
 
 
+
+
+
+
+    
 

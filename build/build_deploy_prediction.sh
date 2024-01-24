@@ -2,59 +2,71 @@
 #
 # Build and deploy Docker image for prediction_server
 #
-set -x  # verbose echo mode on so can see expansion of variables etc.
+# set -x  # verbose echo mode on so can see expansion of variables etc.
 
 # see if first parameter is "cloud_build".  It will indicate whether to use remote build
-if [ "$1" == "cloud_build" ]; then
+if [ "$1" = "cloud_build" ]; then
     CLOUD_BUILD="true"
 else
     CLOUD_BUILD="false"
 fi
 
+# see what ENV we are building, check ENV variable, default to TEST
+if [ $ENV = "prod" ]; then
+  ENV="prod"
+else
+  ENV="test"
+fi
 
-# start from the corpuskeeper/rag/build directory
-CK_INGEST_DIR="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
-CK_DIR="$(dirname "$CK_INGEST_DIR")"
+# find out the name of the directory containing this script (BUILD_DIR)
+BUILD_DIR="$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1
 
+# and the parent directory containing that (i.e., the PROJECT_DIR)
+PROJECT_DIR="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 
-echo $CK_INGEST_DIR
-cp "$CK_INGEST_DIR/build/Dockerfile" "$CK_DIR/Dockerfile"
+echo "Using scripts from ${BUILD_DIR} to build ${DOCKER_IMAGE} using project files from ${PROJECT_DIR}"
+
+DOCKER_IMAGE="prediction-server-${ENV}"
+REPO_NAME="us-central1-docker.pkg.dev/phase-prediction/containers"
 
 # shellcheck disable=SC1101
 if [ "$CLOUD_BUILD" == "true" ]; then
-  gcloud builds submit "$CK_DIR" \
-    --tag "us-central1-docker.pkg.dev/phase-predition/containers/${CKBASE}-ingest" \
+
+  # cloud build requires a Dockerfile in the project directory
+  cp ${BUILD_DIR}/Dockerfile "${PROJECT_DIR}"
+
+  gcloud builds submit "$PROJECT_DIR" \
+    --tag "${REPO_NAME}/${DOCKER_IMAGE}" \
     --region us-central1
+
+  # get the exit status of the build
+  BUILD_STATUS=$?
+
+  # remove the temporary Dockerfile
+  rm -f "${PROJECT_DIR}/Dockerfile"
+
+
 else
   # to test build locally:
-  docker build -t "${CKBASE}-ingest" -f "$CK_INGEST_DIR/Dockerfile" "$CK_DIR"
+  docker build -t "${DOCKER_IMAGE}" -f "${BUILD_DIR}/Dockerfile" "${PROJECT_DIR}"
 
-BUILD_STATUS=$?
+  # get the exit status of the build
+  BUILD_STATUS=$?
 
-rm -f "$CK_DIR/Dockerfile"
+  # push docker image to cloud artifact registry
+  docker tag "${DOCKER_IMAGE} ${REPO_NAME}/${DOCKER_IMAGE}"
+  docker push "${REPO_NAME}/${DOCKER_IMAGE}"
+
+fi
 
 # Check the exit status
 if ! [ $BUILD_STATUS -eq 0 ]; then
     echo "Build failed...not deploying."
-    exit 1
+    # exit 1
 fi
 
 # if we get here, build succeeded, but do not auto deploy for now
-echo "Build succeeded...not deploying."
-exit 0
+echo "Build succeeded...ready to deploy."
+# exit 0
 
-echo "Build succeeded...deploying."
-
-# always have one production server running, but can scale down to zero for dev
-if [ "$ENV" == "prod" ]; then MIN_INSTANCES=0; else MIN_INSTANCES=0; fi
-gcloud run deploy ${CKBASE}-ingest \
-  --image "us-central1-docker.pkg.dev/phase-prediction/containers/prediction_server" \
-  --allow-unauthenticated \
-  --region us-central1 \
-  --labels "env=${ENV}" \
-  --min-instances ${MIN_INSTANCES} \
-  --max-instances 10 \
-  --timeout 600 \
-  --memory 2Gi \
-  --set-env-vars "ENV=${ENV},GOOGLE_CLOUD_PROJECT=phase-prediction"
-
+# eventually this will push out to instance group

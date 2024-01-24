@@ -1,5 +1,6 @@
 from pymatgen.core import Lattice, Structure
 from smol.capp.generate.special.sqs import StochasticSQSGenerator
+import logging
 
 def corr_sqs(primitive_structure):
 
@@ -30,6 +31,9 @@ def corr_sqs(primitive_structure):
 
 def cint_sqs(primitive_structure):
 
+    
+    logging.info("Creationg a Stochastic SQS generator")    
+
     # create a cluster interaction vector based SQS generator
     generator_cint = StochasticSQSGenerator.from_structure(
         structure=primitive_structure,
@@ -39,6 +43,7 @@ def cint_sqs(primitive_structure):
         match_weight=1.0,
     )
 
+    logging.info("Generating a bunch of SQS")
     # generate SQS using cluster interaction vector based score
     generator_cint.generate(
         mcmc_steps=100000, # steps per temperature
@@ -56,7 +61,13 @@ def cint_sqs(primitive_structure):
 
 if __name__ == '__main__':
 
+    # set up logging to log time and module
+    logging.basicConfig(format='%(process)d: %(asctime)s: %(levelname)s: %(funcName)s: %(message)s', level=logging.INFO)
+
+    # create a disordered V-Co-Ni FCC structure
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
+
+    logging.info("Creating a disordered V-Co-Ni FCC structure")
 
     # create a disordered V-Co-Ni FCC structure
     structure = Structure.from_spacegroup(
@@ -65,11 +76,15 @@ if __name__ == '__main__':
         species=[composition],
         coords=[[0, 0, 0]]    )
 
+    logging.info("Getting primitive structure")
+
 
     primitive_structure = structure.get_primitive_structure()
 
+    logging.info("Generating SQS")
+
     sqs_list = cint_sqs(primitive_structure)
 
-    print(sqs_list)
+    logging.info(  sqs_list)
 
 
