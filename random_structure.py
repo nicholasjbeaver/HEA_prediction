@@ -2,8 +2,6 @@ from pymatgen.core import Lattice, Structure
 from jarvis.core.atoms import pmg_to_atoms
 from ase.spacegroup import crystal
 from alloy_mol_fractions import find_mole_fractions
-
-
 from pyxtal import pyxtal
 import re
 
@@ -67,12 +65,12 @@ def random_structure(alloy, crystal):
     if crystal == 'FCC':
         spacegroup = 225
     else:
-        spacegroup = 225
+        spacegroup = 229
 
     # regular expression to extract alloying elements from equiatomic alloys
     elements = re.findall(r'[A-Z][a-z]*', alloy)
 
-    # random pyxtal structure (40 atoms with spacegroup determined by crystal specified
+    # random pyxtal structure (40 atoms with spacegroup determined by crystal specified)
     structure = pyxtal()
     structure.from_random(3, 225, elements, [8,8,8,8,8])
     pmg = structure.to_pymatgen()
