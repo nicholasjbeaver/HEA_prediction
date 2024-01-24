@@ -1,0 +1,2 @@
+pyshtools==4.10.4
+pyxtal==0.6.1
