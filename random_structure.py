@@ -4,10 +4,9 @@ from ase.spacegroup import crystal
 from alloy_mol_fractions import find_mole_fractions
 
 
-'''
 from pyxtal import pyxtal
 import re
-'''
+
 
 def jvs_from_pmg_disordered_structure(composition, crystal): 
 
@@ -52,9 +51,9 @@ def supercell_from_ase(alloy, crystal):
         size = [10, 5, 5]
 
 
-    structure = crystal(elements, spacegroup=spacegroup, size=size)
+    structure = crystal(symbols=elements, spacegroup=spacegroup, size=size)
 
-'''
+
 def random_structure(alloy, crystal):
     
     # makes structure of a given composition, number of atoms, and crystal structure using pyxtal
@@ -79,22 +78,25 @@ def random_structure(alloy, crystal):
     pmg = structure.to_pymatgen()
     jvs = pmg_to_atoms(pmg)
     return jvs
-'''
 
 
-if __name__ =='main':
+
+if __name__ =='__main__':
+    
     '''
-    alloy = 'FeCrCuNi'
+    
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
     atoms = jvs_from_pmg_disordered_structure(composition, 'FCC')
     print(atoms)
-    '''
-
+    
+    alloy = 'FeCrCuNi'
+    print('doing it')
     ase = supercell_from_ase(alloy, 'FCC')
     print(ase)
     '''
+    
     jvs = random_structure('FeNiCuTiSi', 'FCC')
     print(f'pyxtal{jvs}')
-    ''' 
+    
 
     
