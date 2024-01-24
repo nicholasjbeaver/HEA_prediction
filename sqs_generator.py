@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from pymatgen.core import Lattice, Structure
 from smol.capp.generate.special.sqs import StochasticSQSGenerator
 import logging

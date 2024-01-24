@@ -53,7 +53,7 @@ def process_message(message):
     logging.info(f'dataclass output:{output}')
 
     # store results in BQ
-    #store_results(output)
+    store_results(output)
 
     return output
 
