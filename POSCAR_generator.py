@@ -55,7 +55,7 @@ def make_vasp(alloy, element_mol_fraction, filepath, output_file):
     returns: none (writes to file)
     """
 
-    total_atoms = 32
+    total_atoms = 40
 
     element_atom_count = {element: max(1, math.floor(total_atoms * fraction)) for element, fraction in element_mol_fraction.items()}
 
@@ -101,9 +101,9 @@ def generate_poscar_files(alloy, crystal):
     mol_fractions = find_mole_fractions(alloy)
 
     if crystal == 'FCC':
-        filepath = 'FCC_32atom_template.txt'
+        filepath = '5_component_FCC.txt'
     elif crystal == 'BCC':
-        filepath = 'BCC_32atom_template.txt'
+        filepath = '5_component_BCC.txt'
 
     output_data = make_vasp(alloy, mol_fractions, filepath, f'vasp_files_temp/{alloy}_{crystal}.vasp')
     return output_data, mol_fractions

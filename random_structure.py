@@ -69,10 +69,11 @@ def random_structure(alloy, crystal):
 
     # regular expression to extract alloying elements from equiatomic alloys
     elements = re.findall(r'[A-Z][a-z]*', alloy)
+    print(elements)
 
     # random pyxtal structure (40 atoms with spacegroup determined by crystal specified)
     structure = pyxtal()
-    structure.from_random(3, 225, elements, [8,8,8,8,8])
+    structure.from_random(3, 193, elements, [8,8,8,8,8])
     pmg = structure.to_pymatgen()
     jvs = pmg_to_atoms(pmg)
     return jvs
