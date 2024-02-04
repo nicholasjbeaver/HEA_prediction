@@ -1,4 +1,5 @@
 from pymatgen.core import Lattice, Structure
+from pymatgen.command_line import mcsqs_caller
 from smol.capp.generate.special.sqs import StochasticSQSGenerator
 import logging
 
@@ -27,7 +28,6 @@ def corr_sqs(primitive_structure):
     )
 
     return sqs_corr_list, generator_corr
-
 
 def cint_sqs(primitive_structure):
 
@@ -59,6 +59,17 @@ def cint_sqs(primitive_structure):
 
     return sqs_cint_list, generator_cint
 
+def pmg_sqs(struc):
+
+    clust={2: 7, 3: 5}
+    mcsqs_caller.run_mcsqs(structure = struc, clusters = clust)
+
+    
+
+
+
+
+
 if __name__ == '__main__':
 
     # set up logging to log time and module
@@ -83,8 +94,11 @@ if __name__ == '__main__':
 
     logging.info("Generating SQS")
 
+    pmg_sqs(primitive_structure)
+
+    '''
     sqs_list = cint_sqs(primitive_structure)
 
     logging.info(  sqs_list)
-
+    '''
 
