@@ -1,6 +1,12 @@
-from pymatgen.core import Lattice, Structure
+from pymatgen.core.structure import Structure
+from pymatgen.core.lattice import Lattice
+from pymatgen.command_line import mcsqs_caller
+from pymatgen.transformations.advanced_transformations import SQSTransformation
 from smol.capp.generate.special.sqs import StochasticSQSGenerator
 import logging
+
+
+    
 
 def corr_sqs(primitive_structure):
 
@@ -27,7 +33,6 @@ def corr_sqs(primitive_structure):
     )
 
     return sqs_corr_list, generator_corr
-
 
 def cint_sqs(primitive_structure):
 
@@ -59,11 +64,23 @@ def cint_sqs(primitive_structure):
 
     return sqs_cint_list, generator_cint
 
+def pmg_sqs(struc):
+
+    clust={2: 7, 3: 5}
+    mcsqs_caller.run_mcsqs(structure = struc, clusters = clust)
+
+    
+
+
+
+
+
 if __name__ == '__main__':
 
     # set up logging to log time and module
     logging.basicConfig(format='%(process)d: %(asctime)s: %(levelname)s: %(funcName)s: %(message)s', level=logging.INFO)
-
+    
+    '''
     # create a disordered V-Co-Ni FCC structure
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
 
@@ -83,8 +100,18 @@ if __name__ == '__main__':
 
     logging.info("Generating SQS")
 
-    sqs_list = cint_sqs(primitive_structure)
+    pmg_sqs(primitive_structure)
+    '''
 
-    logging.info(  sqs_list)
+    
+    a = 3.8
+    lattice = Lattice.cubic(a)
+    structure = Structure(lattice, [{'Pd': 0.5, 'Cu': 0.5},{'Pd': 0.5, 'Cu': 0.5}, {'Pd': 0.5, 'Cu': 0.5},{'Pd': 0.5, 'Cu': 0.5}],[[0,0,0], [0.5,0.5,0], [0.5,0,0.5],[0,0.5,0.5]])
+    print(structure)
 
+    logging.info('making sqs transformation')
+    sqstrans = SQSTransformation([1,1,1])
+    print(sqstrans)
 
+    logging.info('applying transformation')
+    sqstrans.apply_transformation(structure)
