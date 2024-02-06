@@ -2,10 +2,19 @@
 
 #!/bin/bash
 
+# See if PRODUCTION env variable is set, if so, set to prod
+if [ -z "$PRODUCTION" ]; then
+  ENV=prod
+else
+  ENV=test
+fi
+
+
 # Define variables
-PROJECT_ID="your-project-id"
-INSTANCE_GROUP_NAME="your-instance-group-name"
-TEMPLATE_NAME="your-template-name"
+PROJECT_ID="phase-prediction"
+INSTANCE_GROUP_NAME="prediction-server-group"
+TEMPLATE_NAME="prediction-server-${ENV}-e2-standard-2-spot-template-1"
+ZONE="us-central1-c"
 REGION="us-central1"
 TARGET_SIZE=1  # Set the target size of the instance group
 
