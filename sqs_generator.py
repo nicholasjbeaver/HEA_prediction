@@ -1,6 +1,7 @@
 from pymatgen.core.structure import Structure
 from pymatgen.core.lattice import Lattice
 from pymatgen.core.composition import Composition
+from pymatgen.core.periodic_table import Element
 from pymatgen.command_line import mcsqs_caller
 from pymatgen.transformations.advanced_transformations import SQSTransformation
 from smol.capp.generate.special.sqs import StochasticSQSGenerator
@@ -34,7 +35,6 @@ def corr_sqs(primitive_structure):
     return sqs_corr_list, generator_corr
 
 def cint_sqs(primitive_structure):
-
     
     logging.info("Creationg a Stochastic SQS generator")    
 
@@ -69,20 +69,37 @@ def pmg_sqs(struc):
     mcsqs_caller.run_mcsqs(structure = struc, clusters = clust)
 
 
-def is_stoichiometric(comp):
-    """Check if the composition is stoichiometric (integer proportions or equiatomic)."""
+def is_stoichiometric(comp: Composition):
+    """Check if the composition is stoichiometric (integer proportions or equiatomic). 
+    Make sure all of the composition numbers are integers. If they are fractional, that would indicate a percentage
+    e.g., Al0.875CoCrFeNi would be considered as Al being 87.5 and the rest equiatomic
+    e.g., Al2CoCrFeNi would be considered as Al being 1 and the rest would be 1, so it would be stoichiometric
+    
+    Args:
+        comp (Composition): Composition to check.  Assumes a pymatgen Composition object.
+    
+    Returns:
+        bool: True if stoichiometric, False otherwise.
+    """
+
     for amt in comp.get_el_amt_dict().values():
         if amt != 1 and not amt.is_integer():
             return False
     return True
 
-def adjust_equiatomic_composition(formula):
+def adjust_equiatomic_composition(comp: Composition):
+    """
+    If any of the elements are fractional, adjust all of the others that aren't specified to the equivelent fraction as if
+    they were equiatomic. 
+    e.g., Al0.875CoCrFeNi would be considered as Al being 87.5 and the rest equiatomic
+    e.g., Al2CoCrFeNi would be considered as Al being 1 and the rest would be 1, so it would be stoichiometric
+    """
+    #TODO: verify that everything adds up to 1'ish
+    #TODO: verify that any partial fractional compositions do not add up to be more than 1
+
     # Initialize a dictionary to hold the element proportions
     element_proportions = {}
     
-    # Use Composition to parse the formula
-    comp = Composition(formula)
-
     # Check if the composition is already stoichiometric
     if is_stoichiometric(comp):
         # If stoichiometric, return the original composition
@@ -117,42 +134,91 @@ def adjust_equiatomic_composition(formula):
     
     return adjusted_comp
 
+def estimate_supercell_size_fcc(average_radius, num_atoms=100):
+    v_atom = (average_radius / np.sqrt(2)) ** 3
+    v_total = num_atoms * v_atom
+    a_supercell = np.cbrt(v_total)
+    return a_supercell
+
+def estimate_lattice_parameter_fcc(average_radius: float):
+    """
+    For FCC, the lattice parameter is the side of the cube with an atom in the center of the face, and an atom on the corner.
+    So, the diagonal across the face is 1/2 atom on the corner, a full atom and another 1/2 atom at the other corner.
+    So, 2 atoms across the diagonal of the face.  Solve for the side of the cube:
+
+    Args:
+        average_radius: average radius of the atoms in the lattice
+
+    Return:
+        lattice parameter of the composition assumming FCC in same units as average_radius
+    """
+    return average_radius * np.sqrt(2)
+
+def estimate_lattice_parameter_bcc(average_radius: float):
+    """
+    For BCC, the lattice parameter is the side of a cube with an atom in the middle of the cube, and an atom on the corner.
+    So, the diagonal across the interior of the cube is 1/2 atom each corner plus one in the middle, so 2 atoms across the diagonal.
+    Solve for the side of the cube:
+
+    Args:
+        average_radius: average radius of the atoms in the lattice
+    
+    Returns:
+        lattice parameter of the composition assumming bcc in same units as average_radius
+    
+    """
+    return 2*average_radius / np.sqrt(3)
+
+def get_weighted_average_radius_for_material(comp: Composition):
+    atomic_radius = 0.0
+
+    # for each element in a composition, construct an element object and extract its radius
+    for el in comp:
+        element = Element(el)
+        atomic_radius += element.atomic_radius
+
+    return atomic_radius / len(comp)
 
 
+def create_supercell_structure(composition: Composition, total_atoms=100 ):
 
-def create_composition(material_string: str):
+    # Calculate the number of each atom
+    num_atoms = {el: int(round(total_atoms * amt)) for el, amt in composition.items()}
 
-    # given an alloy string, assign concentrations.  If there is no number after the element, assume that it is 1
-    # e.g. "Al0.875CoCrFeNi"
-    comp = Composition(material_string)
+    # Ensure total atoms match exactly 100, adjust the largest if necessary
+    actual_total_atoms = sum(num_atoms.values())
+    if actual_total_atoms < total_atoms:
+        num_atoms['Al'] += total_atoms - actual_total_atoms  # Adjust 
 
-    logging.info(f"Creating a disordered {material_string} structure")
+    # Step 2: Create an initial FCC structure for Al (chosen arbitrarily)
+    a = get_weighted_average_radius_for_material(composition)
+    lattice = Lattice.cubic(a)
+    structure = Structure(lattice, ['Al'], [[0, 0, 0]])  # FCC position
 
-    # print each element and its ratio
-    for element, ratio in comp.fractional_composition.items():
-        logging.info(f"Fractional composition: {element}: {ratio}")
+    # Step 3: Generate an approximate supercell
+    # For FCC, each cell contains 4 atoms. Find the smallest cube number >= total_atoms/4 and take its cubic root for scaling
+    scale_factor = round((total_atoms / 4) ** (1/3))
+    if scale_factor ** 3 * 4 < total_atoms:
+        scale_factor += 1  # Ensure we have at least total_atoms
+    supercell = structure.copy()
+    supercell.make_supercell([scale_factor, scale_factor, scale_factor])
 
-    # print the number of atoms of each element in the composition
-    for element, num_atoms in comp.element_composition.items():
-        logging.info(f"Element composition: {element}: {num_atoms}")
+    # Step 4: Randomly replace atoms to achieve the desired composition
+    # Flatten the list of atoms based on num_atoms
+    desired_atoms = [el for el, num in num_atoms.items() for _ in range(num)]
+    # Randomly shuffle the atoms
+    np.random.shuffle(desired_atoms)
 
-    # print the total number of atoms in the composition
-    logging.info(f"Number of atoms: {comp.num_atoms}")
+    # Replace atoms in the supercell with the shuffled atoms
+    for i, specie in enumerate(desired_atoms):
+        supercell.replace(i, specie)
 
-    # print the reduced formula
-    logging.info(f"Reduced formula: {comp.reduced_formula}")
+    # If the supercell has more atoms than needed, remove the excess
+    if len(supercell) > total_atoms:
+        del supercell.sites[total_atoms:]
 
-    # print the comp.formula
-    logging.info(f"Formula: {comp.formula}")
+print(supercell)
 
-    # print the comp.alphabetical_formula
-    logging.info(f"Alphabetical formula: {comp.alphabetical_formula}")
-
-    # print the comp.reduced_composition
-    logging.info(f"Reduced composition: {comp.reduced_composition}")
-
-    # print the comp.element_composition
-    logging.info(f"Element composition: {comp.element_composition}")
     
 
 if __name__ == '__main__':
@@ -164,9 +230,9 @@ if __name__ == '__main__':
     # create a disordered V-Co-Ni FCC structure
     composition = {"V": 1.0/3.0, "Co": 1.0/3.0, "Ni": 1.0/3.0}
 
-    logging.info("Creating a disordered V-Co-Ni FCC structure")
+    logging.info("Creating a disordered VCoNi FCC structure")
 
-    # create a disordered V-Co-Ni FCC structure
+    # create a disordered FCC structure
     structure = Structure.from_spacegroup(
         "Fm-3m",
         lattice=Lattice.cubic(3.58),
@@ -182,7 +248,7 @@ if __name__ == '__main__':
 
     pmg_sqs(primitive_structure)
   
-
+"""
     
     a = 3.8
     lattice = Lattice.cubic(a)
@@ -195,3 +261,4 @@ if __name__ == '__main__':
 
     logging.info('applying transformation')
     sqstrans.apply_transformation(structure)
+"""
