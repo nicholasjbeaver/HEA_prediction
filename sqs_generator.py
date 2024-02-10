@@ -67,8 +67,6 @@ def pmg_sqs(struc):
 
     clust={2: 7, 3: 5}
     mcsqs_caller.run_mcsqs(structure = struc, clusters = clust)
-
-
     
 
 if __name__ == '__main__':

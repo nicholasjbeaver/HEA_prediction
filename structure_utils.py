@@ -2,6 +2,7 @@ from pymatgen.core.structure import Structure
 from pymatgen.core.lattice import Lattice
 from pymatgen.core.composition import Composition
 from pymatgen.core.periodic_table import Element
+from pymatgen.symmetry.groups import SpaceGroup
 
 import logging
 
@@ -121,19 +122,114 @@ def get_max_radius_for_material(comp: Composition):
 
     return max_radius
 
+def get_most_common_element(comp: Composition):
+    comp_dict = compostion.to_reduced_dict()
+    return Element(max(num_atoms, key=num_atoms.get))
+import math
+
+def calculate_fcc_scaling_factors(total_atoms):
+    """
+    Calculate the scaling factors for an FCC structure to achieve a target number of atoms.
+    
+    Parameters:
+    - total_atoms: The target total number of atoms in the supercell.
+    
+    Returns:
+    - A tuple representing the scaling factors (nx, ny, nz) to be used for the supercell.
+    """
+    
+    # Each FCC unit cell contains 4 atoms
+    atoms_per_unit_cell = 4
+    
+    # Calculate the number of unit cells needed to achieve the target number of atoms
+    # Since we're aiming for a cubic supercell, we take the cube root of the ratio
+    # between the total desired atoms and the atoms per unit cell, and then round it up
+    # to the nearest whole number to ensure we meet or exceed the target atom count.
+    num_unit_cells = math.ceil((total_atoms / atoms_per_unit_cell) ** (1/3))
+    
+    # The scaling factors for x, y, and z are the same for a cubic supercell
+    return (num_unit_cells, num_unit_cells, num_unit_cells)
+
+import math
+
+def calculate_bcc_scaling_factors(total_atoms):
+    """
+    Calculate the scaling factors for a BCC structure to achieve a target number of atoms.
+    
+    Parameters:
+    - total_atoms: The target total number of atoms in the supercell.
+    
+    Returns:
+    - A tuple representing the scaling factors (nx, ny, nz) to be used for the supercell.
+    """
+    
+    # Each BCC unit cell contains 2 atoms
+    atoms_per_unit_cell = 2
+    
+    # Calculate the number of unit cells needed to achieve the target number of atoms
+    # Since we're aiming for a cubic supercell, we take the cube root of the ratio
+    # between the total desired atoms and the atoms per unit cell, and then round it up
+    # to the nearest whole number to ensure we meet or exceed the target atom count.
+    num_unit_cells = math.ceil((total_atoms / atoms_per_unit_cell) ** (1/3))
+    
+    # The scaling factors for x, y, and z are the same for a cubic supercell
+    return (num_unit_cells, num_unit_cells, num_unit_cells)
 
 
-def create_supercell_structure(composition: Composition, total_atoms=100 ):
 
-    # Calculate the number of each atom
-    num_atoms = {el: int(round(total_atoms * amt)) for el, amt in composition.items()}
+
+
+
+def create_random_supercell_structure(composition: Composition, crystal: str, total_atoms=100 ):
+
+    valid_crystal_type = {"fcc", "bcc"}
+
+    # convert crystal to lower and compare to list of valid crystal types
+    crystal = crystal.lower()
+
+    # Check that the crystal type is valid, if not log an error and raise an exception
+    assert crystal in valid_crystal_types, f"{crystal} is not a valid crystal type. Valid crystal types are {', '.join(valid_crystal_types)}."
+
+    el = get_most_common_element(composition)
+
+    # ---- Make a unit cell of just one element type and scale it up to total_atoms -----
+    if crystal == "fcc":
+        a = estimate_lattice_parameter_fcc(el.atomic_radius)
+        
+        # Create FCC structure using space group Fm-3m (225)
+        structure = Structure.from_spacegroup("Fm-3m", Lattice.cubic(a), [el.name], [[0, 0, 0]])
+
+        scaling_factors = calculate_fcc_scaling_factors(total_atoms)
+        print(f"Scaling factors for FCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
+        supercell =structure.make_supercell(scaling_factors)
+
+    elif crystal == "bcc":
+        a = estimate_lattice_parameter_bcc(el.atomic_radius)
+
+        # Create BCC structure using space group Im-3m (229)
+        structure = Structure.from_spacegroup("Im-3m", Lattice.cubic(a), [el.name], [[0, 0, 0]])
+
+        # Example usage
+    scaling_factors = calculate_bcc_scaling_factors(total_atoms)
+    print(f"Scaling factors for BCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
+    supercell =structure.make_supercell(scaling_factors)
+
+
+    # get a composition dictionary that lists the element and how many atoms it has in the formula
+    comp_dict = compostion.to_reduced_dict()
+    logging.debug(f'Composition dictionary: {comp_dict}')
+
+    # Calculate the total number of atoms for a composition that will be in supercell size of total_atoms
+    num_atoms = {el: int(round(total_atoms * amt)) for el, amt in comp_dict.items()}
 
     # Ensure total atoms match exactly 100, adjust the largest if necessary
+    # find largest number in comp_dict
+    el_with_most_atoms = max(num_atoms, key=num_atoms.get)
     actual_total_atoms = sum(num_atoms.values())
     if actual_total_atoms < total_atoms:
-        num_atoms['Al'] += total_atoms - actual_total_atoms  # Adjust 
+        num_atoms[el_with_most_atoms] += total_atoms - actual_total_atoms  # Adjust 
 
-    # Step 2: Create an initial FCC structure for Al (chosen arbitrarily)
+    # Step 2: Create an initial FCC structure
     a = get_weighted_average_radius_for_material(composition)
     lattice = Lattice.cubic(a)
     structure = Structure(lattice, ['Al'], [[0, 0, 0]])  # FCC position

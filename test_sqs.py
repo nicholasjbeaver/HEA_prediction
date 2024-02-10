@@ -47,19 +47,10 @@ if __name__ == '__main__':
   
     # create a disordered V-Co-Ni FCC structure
     comp = su.adjust_equiatomic_composition(Composition("VCoNi"))
+
     logging.info(f"Creating a disordered FCC structure for {comp}")
 
-    # create a disordered FCC structure
-    structure = Structure.from_spacegroup(
-        "Fm-3m",
-        lattice=Lattice.cubic(3.58),
-        species=[composition],
-        coords=[[0, 0, 0]]    )
+    #structure = create_random_supercell_structure(comp, total_atoms=100)
 
-    logging.info("Getting primitive structure")
-
-    primitive_structure = structure.get_primitive_structure()
-
-    logging.info("Generating SQS")
-
-    pmg_sqs(primitive_structure)
+    #logging.info(f"Generating SQS using {structure}")
+    #pmg_sqs(structure)
