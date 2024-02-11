@@ -23,12 +23,18 @@ if __name__ == '__main__':
     #--------  Test average atomic size -------------------
 
     for material in materials_list:
-
         comp = Composition(material)
         adjusted_composition = su.adjust_equiatomic_composition(comp)
         print(f"Average atomic size: {su.get_weighted_average_radius_for_material(adjusted_composition)} Angstroms")
         print(f'Maximum atomic size: {su.get_largest_element(adjusted_composition)} Angstroms')
 
+
+    #--------  Test create_random_supercell_structure -------------------
+    for material in materials_list:
+        comp = Composition(material)
+        adjusted_composition = su.adjust_equiatomic_composition(comp)
+        structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=100)
+        print(f"{structure}")
 
     #--------  Test pmg_sqs -------------------
   

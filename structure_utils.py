@@ -4,6 +4,8 @@ from pymatgen.core.composition import Composition
 from pymatgen.core.periodic_table import Element
 from pymatgen.symmetry.groups import SpaceGroup
 
+import math
+import numpy as np
 import logging
 
 
@@ -123,9 +125,8 @@ def get_largest_element(comp: Composition):
     return max_radius
 
 def get_most_common_element(comp: Composition):
-    comp_dict = compostion.to_reduced_dict()
-    return Element(max(num_atoms, key=num_atoms.get))
-import math
+    comp_dict = comp.to_reduced_dict
+    return Element(max(comp_dict, key=comp_dict.get))
 
 def calculate_fcc_scaling_factors(total_atoms):
     """
@@ -178,7 +179,7 @@ def calculate_bcc_scaling_factors(total_atoms):
 
 def create_random_supercell_structure(composition: Composition, crystal: str, total_atoms=100 ):
 
-    valid_crystal_type = {"fcc", "bcc"}
+    valid_crystal_types = {"fcc", "bcc"}
 
     # convert crystal to lower and compare to list of valid crystal types
     crystal = crystal.lower()
@@ -198,7 +199,7 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
 
         scaling_factors = calculate_fcc_scaling_factors(total_atoms)
         print(f"Scaling factors for FCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
-        supercell =structure.make_supercell(scaling_factors)
+        supercell = structure.make_supercell(scaling_factors)
 
     elif crystal == "bcc":
         a = estimate_lattice_parameter_bcc(el.atomic_radius)
@@ -207,13 +208,13 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
         structure = Structure.from_spacegroup("Im-3m", Lattice.cubic(a), [el.name], [[0, 0, 0]])
 
         # Example usage
-    scaling_factors = calculate_bcc_scaling_factors(total_atoms)
-    print(f"Scaling factors for BCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
-    supercell =structure.make_supercell(scaling_factors)
+        scaling_factors = calculate_bcc_scaling_factors(total_atoms)
+        print(f"Scaling factors for BCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
+        supercell = structure.make_supercell(scaling_factors)
 
 
     # get a composition dictionary that lists the element and how many atoms it has in the formula
-    comp_dict = compostion.to_reduced_dict()
+    comp_dict = composition.to_reduced_dict
     logging.debug(f'Composition dictionary: {comp_dict}')
 
     # Calculate the total number of atoms for a composition that will be in supercell size of total_atoms
@@ -226,20 +227,7 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
     if actual_total_atoms < total_atoms:
         num_atoms[el_with_most_atoms] += total_atoms - actual_total_atoms  # Adjust 
 
-    # Step 2: Create an initial FCC structure
-    a = get_weighted_average_radius_for_material(composition)
-    lattice = Lattice.cubic(a)
-    structure = Structure(lattice, ['Al'], [[0, 0, 0]])  # FCC position
-
-    # Step 3: Generate an approximate supercell
-    # For FCC, each cell contains 4 atoms. Find the smallest cube number >= total_atoms/4 and take its cubic root for scaling
-    scale_factor = round((total_atoms / 4) ** (1/3))
-    if scale_factor ** 3 * 4 < total_atoms:
-        scale_factor += 1  # Ensure we have at least total_atoms
-    supercell = structure.copy()
-    supercell.make_supercell([scale_factor, scale_factor, scale_factor])
-
-    # Step 4: Randomly replace atoms to achieve the desired composition
+    # Randomly replace atoms to achieve the desired composition
     # Flatten the list of atoms based on num_atoms
     desired_atoms = [el for el, num in num_atoms.items() for _ in range(num)]
     # Randomly shuffle the atoms
@@ -253,4 +241,4 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
     if len(supercell) > total_atoms:
         del supercell.sites[total_atoms:]
 
-    print(supercell)
+    return supercell
