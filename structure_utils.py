@@ -112,13 +112,13 @@ def get_weighted_average_radius_for_material(comp: Composition):
     logging.info(f"Weighted Average Atomic radius for {comp} is {atomic_radius}")
     return atomic_radius
 
-def get_max_radius_for_material(comp: Composition):
+def get_largest_element(comp: Composition):
     max_radius = 0
     for element in comp.elements:
         if element.atomic_radius > max_radius:
             max_radius = element.atomic_radius
 
-    logging.info(f"Maxiumum Atomic radius for {comp} is {max_radius}")
+    logging.info(f"Maximum Atomic radius for {comp} is {max_radius}")
 
     return max_radius
 
@@ -176,10 +176,6 @@ def calculate_bcc_scaling_factors(total_atoms):
     return (num_unit_cells, num_unit_cells, num_unit_cells)
 
 
-
-
-
-
 def create_random_supercell_structure(composition: Composition, crystal: str, total_atoms=100 ):
 
     valid_crystal_type = {"fcc", "bcc"}
@@ -190,6 +186,7 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
     # Check that the crystal type is valid, if not log an error and raise an exception
     assert crystal in valid_crystal_types, f"{crystal} is not a valid crystal type. Valid crystal types are {', '.join(valid_crystal_types)}."
 
+    # use the most common element as the basis for a creating a unary crystal structure.  Could also use the largest.
     el = get_most_common_element(composition)
 
     # ---- Make a unit cell of just one element type and scale it up to total_atoms -----

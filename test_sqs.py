@@ -10,37 +10,24 @@ logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == '__main__':
 
+    materials_list = ["Al0.875CoCrFeNi", "Al0.875CoCrFeNi0.10", "CoCrFeNi", "Al4CoCrFeNi"]
+
     #--------  Test composition -------------------
-    # Example usage
-    comp = Composition("Al0.875CoCrFeNi")
-    adjusted_composition = su.adjust_equiatomic_composition(comp)
-    print(adjusted_composition)
+    
+    for material in materials_list:
+        comp = Composition(material)
+        adjusted_composition = su.adjust_equiatomic_composition(comp)
+        print(adjusted_composition)
 
-    comp = Composition("Al0.875CoCrFeNi0.10")
-    adjusted_composition = su.adjust_equiatomic_composition(comp)
-    print(adjusted_composition)
-
-    # For a formula where all elements are equiatomic and none specified
-    comp = Composition("CoCrFeNi")
-    adjusted_composition = su.adjust_equiatomic_composition(comp)
-    print(adjusted_composition)
-
-    # For a formula where all elements are equiatomic and none specified
-    comp = Composition("Al4CoCrFeNi")
-    adjusted_composition = su.adjust_equiatomic_composition(comp)
-    print(adjusted_composition)
 
     #--------  Test average atomic size -------------------
-    # Example usage
-    comp = Composition("Al0.875CoCrFeNi")
-    adjusted_composition = su.adjust_equiatomic_composition(comp)
-    print(f"Average atomic size: {su.get_weighted_average_radius_for_material(adjusted_composition)} Angstroms")
-    print(f'Maximum atomic size: {su.get_max_radius_for_material(adjusted_composition)} Angstroms')
 
-    comp = Composition("Al4CoCrFeNi")
-    adjusted_composition = su.adjust_equiatomic_composition(comp)
-    print(f"Average atomic size: {su.get_weighted_average_radius_for_material(adjusted_composition)} Angstroms")
-    print(f'Maximum atomic size: {su.get_max_radius_for_material(adjusted_composition)} Angstroms')
+    for material in materials_list:
+
+        comp = Composition(material)
+        adjusted_composition = su.adjust_equiatomic_composition(comp)
+        print(f"Average atomic size: {su.get_weighted_average_radius_for_material(adjusted_composition)} Angstroms")
+        print(f'Maximum atomic size: {su.get_largest_element(adjusted_composition)} Angstroms')
 
 
     #--------  Test pmg_sqs -------------------
