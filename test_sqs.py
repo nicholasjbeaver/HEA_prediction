@@ -45,7 +45,8 @@ if __name__ == '__main__':
 
     comp = Composition(material)
     adjusted_composition = su.adjust_equiatomic_composition(comp)
-    structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=60)
+    #structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=60)
+    structure = su.create_disordered_structure(adjusted_composition, "fcc", total_atoms=60)
     cutoffs = su.propose_fcc_cutoffs(structure)
 
     logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")

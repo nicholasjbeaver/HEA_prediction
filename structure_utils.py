@@ -1,6 +1,7 @@
 from pymatgen.core.structure import Structure
 from pymatgen.core.lattice import Lattice
 from pymatgen.core.composition import Composition
+from pymatgen.core import Species
 from pymatgen.core.periodic_table import Element
 from pymatgen.symmetry.groups import SpaceGroup
 
@@ -326,3 +327,37 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
 
 
     return supercell
+
+
+def create_disordered_structure(composition: Composition, crystal: str, total_atoms=100 ):
+    valid_crystal_types = {"fcc", "bcc"}
+    crystal = crystal.lower()
+    assert crystal in valid_crystal_types, f"{crystal} is not a valid crystal type. Valid crystal types are {', '.join(valid_crystal_types)}."
+
+    # Assuming get_most_common_element returns an Element object
+    el = get_most_common_element(composition)
+
+    # Assuming composition is a pymatgen Composition object
+    comp_dict = composition.get_el_amt_dict()
+
+    if crystal == "fcc":
+        a = estimate_lattice_parameter_fcc(el.atomic_radius)
+        scaling_factors = calculate_fcc_scaling_factors(total_atoms)
+        print(f"Scaling factors for FCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
+    elif crystal == "bcc":
+        a = estimate_lattice_parameter_bcc(el.atomic_radius)
+        scaling_factors = calculate_bcc_scaling_factors(total_atoms)
+        print(f"Scaling factors for BCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
+
+    # Create a structure with disordered composition directly
+    species = [{Species(el, 1): amt for el, amt in comp_dict.items()}]
+    coords = [[0, 0, 0]]  # Assuming a single site for simplicity; adjust as needed for your structure
+
+    # Create the initial structure
+    structure = Structure.from_spacegroup("Fm-3m" if crystal == "fcc" else "Im-3m", Lattice.cubic(a), species, coords)
+    # supercell = structure * np.array(scaling_factors)
+    supercell = structure.copy()
+
+    return supercell
+
+
