@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == '__main__':
 
-    materials_list = ["Al0.875CoCrFeNi", "Al0.875CoCrFeNi0.10", "CoCrFeNi", "Al4CoCrFeNi"]
+    materials_list = ["Al0.875CoCrFeNi", "Al0.875CoCrFeNi0.10", "CoCrFeNi", "Al4CoCrFeNi", "VCoNi"]
 
     #--------  Test composition -------------------
     

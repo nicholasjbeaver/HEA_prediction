@@ -27,6 +27,33 @@ def is_stoichiometric(comp: Composition):
             return False
     return True
 
+from pymatgen.core import Composition
+
+def stoichiometry_to_atom_percent_composition(comp: Composition):
+    """
+    Convert stoichiometric representation to a Composition object with atom percent composition.
+    
+    Parameters:
+    - comp (Composition): Stoichiometric representation of the compound (e.g., "H2O").
+    
+    Returns:
+    - Composition: A Composition object with elements as keys and their atom percent compositions as values.
+    """
+
+    total_atoms = 0    
+    # Calculate the total number of atoms
+    for el, amt in comp.get_el_amt_dict().items():
+        total_atoms += amt
+
+    # Calculate the fractional composition for each element
+    fractional_composition = {el: comp[el] / total_atoms for el in comp.elements}
+    
+    # Create a new Composition object with fractional composition
+    new_comp = Composition(fractional_composition)
+    
+    return new_comp
+
+
 def adjust_equiatomic_composition(comp: Composition):
     """
     If any of the elements are fractional, adjust all of the others that aren't specified to the equivelent fraction as if
@@ -42,8 +69,8 @@ def adjust_equiatomic_composition(comp: Composition):
     
     # Check if the composition is already stoichiometric
     if is_stoichiometric(comp):
-        # If stoichiometric, return the original composition
-        return comp
+        # If it is, convert it to a Composition object with atom percent composition
+        return stoichiometry_to_atom_percent_composition(comp)
     
     # Total specified proportion (excluding elements assumed to be equiatomic)
     total_specified_proportion = 0
