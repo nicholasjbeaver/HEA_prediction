@@ -63,6 +63,7 @@ def adjust_equiatomic_composition(comp: Composition):
     """
     #TODO: verify that everything adds up to 1'ish
     #TODO: verify that any partial fractional compositions do not add up to be more than 1
+    #TODO: make sure every atom gets used at least once...small fractions sometimes omit thos atoms in a smaller supercell
 
     # Initialize a dictionary to hold the element proportions
     element_proportions = {}
@@ -178,8 +179,6 @@ def calculate_fcc_scaling_factors(total_atoms):
     # The scaling factors for x, y, and z are the same for a cubic supercell
     return (num_unit_cells, num_unit_cells, num_unit_cells)
 
-import math
-
 def calculate_bcc_scaling_factors(total_atoms):
     """
     Calculate the scaling factors for a BCC structure to achieve a target number of atoms.
@@ -202,6 +201,63 @@ def calculate_bcc_scaling_factors(total_atoms):
     
     # The scaling factors for x, y, and z are the same for a cubic supercell
     return (num_unit_cells, num_unit_cells, num_unit_cells)
+
+def propose_fcc_cutoffs(structure: Structure):
+    """
+    Propose cutoff values for pairs and triplets in an FCC lattice based on the lattice parameter.
+    
+    Parameters:
+    - structure: Structure: The full FCC structure.
+    
+    Returns:
+    - dict: Dictionary with proposed cutoff values for pairs and triplets.
+    """
+
+    # Get the lattice parameter from the structure
+    lattice_parameter = structure.lattice.a
+    
+    # Nearest neighbor (NN) distance
+    nn_distance = lattice_parameter / (2**0.5)
+    
+    # Second nearest neighbor distance is equal to the lattice parameter
+    second_nn_distance = lattice_parameter
+    
+    # Propose cutoffs: For pairs, use the NN distance.
+    # For triplets, use the second NN distance to ensure inclusion of these interactions.
+    cutoffs = {
+        2: nn_distance,  # Pair cutoff
+        3: second_nn_distance  # Triplet cutoff
+    }
+    
+    return cutoffs
+
+def propose_bcc_cutoffs(structure: Structure):
+    """
+    Propose cutoff values for pairs and triplets in a BCC lattice based on the lattice parameter.
+    
+    Parameters:
+    - structure (Structure): The full BCC structure.
+  
+    Returns:
+    - dict: Dictionary with proposed cutoff values for pairs and triplets.
+    """
+    # Get the lattice parameter from the structure
+    lattice_parameter = structure.lattice.a
+
+    # Nearest neighbor (NN) distance
+    nn_distance = (lattice_parameter * (3**0.5)) / 2
+    
+    # Second nearest neighbor distance is equal to the lattice parameter
+    second_nn_distance = lattice_parameter
+    
+    # Propose cutoffs: For pairs, use the NN distance.
+    # For triplets, use the second NN distance to ensure inclusion of these interactions.
+    cutoffs = {
+        2: nn_distance,  # Pair cutoff
+        3: second_nn_distance  # Triplet cutoff
+    }
+    
+    return cutoffs
 
 
 def create_random_supercell_structure(composition: Composition, crystal: str, total_atoms=100 ):
@@ -267,5 +323,6 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
     # If the supercell has more atoms than needed, remove the excess
     if len(supercell) > total_atoms:
         del supercell.sites[total_atoms:]
+
 
     return supercell

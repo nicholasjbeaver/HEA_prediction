@@ -2,6 +2,8 @@
 import sqs_generator as sqs
 import structure_utils as su
 from pymatgen.core.composition import Composition
+from pymatgen.command_line import mcsqs_caller
+
 
 # set the default logging level to INFO
 import logging
@@ -33,17 +35,18 @@ if __name__ == '__main__':
     for material in materials_list:
         comp = Composition(material)
         adjusted_composition = su.adjust_equiatomic_composition(comp)
-        structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=100)
+        structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=60)
         print(f"{structure}")
 
     #--------  Test pmg_sqs -------------------
-  
-    # create a disordered V-Co-Ni FCC structure
-    comp = su.adjust_equiatomic_composition(Composition("VCoNi"))
 
-    logging.info(f"Creating a disordered FCC structure for {comp}")
+    # get first material in materials_list
+    material = materials_list[0]
 
-    #structure = create_random_supercell_structure(comp, total_atoms=100)
+    comp = Composition(material)
+    adjusted_composition = su.adjust_equiatomic_composition(comp)
+    structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=60)
+    cutoffs = su.propose_fcc_cutoffs(structure)
 
-    #logging.info(f"Generating SQS using {structure}")
-    #pmg_sqs(structure)
+    logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")
+    mcsqs_caller.run_mcsqs(structure = structure, clusters = cutoffs)
