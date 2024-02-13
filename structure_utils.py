@@ -355,8 +355,7 @@ def create_disordered_structure(composition: Composition, crystal: str, total_at
 
     # Create the initial structure
     structure = Structure.from_spacegroup("Fm-3m" if crystal == "fcc" else "Im-3m", Lattice.cubic(a), species, coords)
-    # supercell = structure * np.array(scaling_factors)
-    supercell = structure.copy()
+    supercell = structure * np.array(scaling_factors)
 
     return supercell
 
