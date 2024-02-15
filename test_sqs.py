@@ -41,15 +41,15 @@ if __name__ == '__main__':
     '''
     #--------  Test pmg_sqs -------------------
 
-    # get first material in materials_list
-    material = "Fe0.25Cr.025Co0.25Ni0.25"
+    logging.info("\n------------ Testing mcsqs_caller ------------------")
+    material = "Fe0.25Cr0.25Co0.25Ni0.25"
 
     comp = Composition(material)
     adjusted_composition = su.adjust_equiatomic_composition(comp)
     logging.info(f"Adjusted composition: {adjusted_composition}")
-    structure = su.create_disordered_structure(adjusted_composition, "fcc", total_atoms=32)
-    # cutoffs = su.propose_fcc_cutoffs(structure)
+    structure, scaling_factors = su.create_disordered_structure(adjusted_composition, "fcc", total_atoms=32)
+    cutoffs = su.propose_fcc_cutoffs(structure)
     
 
     logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")
-    mcsqs_caller.run_mcsqs(structure = structure, clusters = cutoffs, directory='./temp', search_time=10)
+    mcsqs_caller.run_mcsqs(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory='./temp', search_time=10)

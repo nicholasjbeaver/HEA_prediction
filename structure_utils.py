@@ -356,10 +356,10 @@ def create_disordered_structure(composition: Composition, crystal: str, total_at
     # Create the initial structure
     structure = Structure.from_spacegroup("Fm-3m" if crystal == "fcc" else "Im-3m", Lattice.cubic(a), species, coords)
     logging.debug(f"Initial structure before scaling: {structure}")
+    
+    reduced_structure = structure.get_reduced_structure()
+    logging.debug(f"Reduced structure after scaling: {reduced_structure}")
 
-    # Scale the structure)
-    supercell = structure * np.array(scaling_factors)
-
-    return supercell
+    return reduced_structure, scaling_factors
 
 
