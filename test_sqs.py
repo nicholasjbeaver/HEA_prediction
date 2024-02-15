@@ -1,14 +1,23 @@
+import logging
+
+
 # import all function from sqs_generator
 import sqs_generator as sqs
 import structure_utils as su
 from pymatgen.core.composition import Composition
 from pymatgen.command_line import mcsqs_caller
+from gcp_utils.utils import tznow, duck_str, timing
 
 
 # set the default logging level to INFO
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
+@timing
+def mcsqs_wrapper(**kwargs):
+    mcsqs_caller.run_mcsqs(**kwargs)
+
+
+# main function
 
 if __name__ == '__main__':
 
@@ -52,4 +61,5 @@ if __name__ == '__main__':
     
 
     logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")
-    mcsqs_caller.run_mcsqs(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory='./temp', search_time=10)
+
+    mcsqs_wrapper(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory='./temp', search_time=10)
