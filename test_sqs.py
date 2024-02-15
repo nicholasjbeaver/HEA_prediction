@@ -32,22 +32,24 @@ if __name__ == '__main__':
 
 
     #--------  Test create_random_supercell_structure -------------------
+    '''
     for material in materials_list:
         comp = Composition(material)
         adjusted_composition = su.adjust_equiatomic_composition(comp)
-        structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=60)
+        structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=32)
         print(f"{structure}")
-
+    '''
     #--------  Test pmg_sqs -------------------
 
     # get first material in materials_list
-    material = materials_list[0]
+    material = "Fe0.25Cr.025Co0.25Ni0.25"
 
     comp = Composition(material)
     adjusted_composition = su.adjust_equiatomic_composition(comp)
-    #structure = su.create_random_supercell_structure(adjusted_composition, "fcc", total_atoms=60)
-    structure = su.create_disordered_structure(adjusted_composition, "fcc", total_atoms=60)
-    cutoffs = su.propose_fcc_cutoffs(structure)
+    logging.info(f"Adjusted composition: {adjusted_composition}")
+    structure = su.create_disordered_structure(adjusted_composition, "fcc", total_atoms=32)
+    # cutoffs = su.propose_fcc_cutoffs(structure)
+    
 
     logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")
-    mcsqs_caller.run_mcsqs(structure = structure, clusters = cutoffs)
+    mcsqs_caller.run_mcsqs(structure = structure, clusters = cutoffs, directory='./temp', search_time=10)

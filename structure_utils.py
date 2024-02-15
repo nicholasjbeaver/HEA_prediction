@@ -349,12 +349,15 @@ def create_disordered_structure(composition: Composition, crystal: str, total_at
         scaling_factors = calculate_bcc_scaling_factors(total_atoms)
         print(f"Scaling factors for BCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
 
-    # Create a structure with disordered composition directly
-    species = [{Species(el, 1): amt for el, amt in comp_dict.items()}]
+    # Create a structure with disordered composition directly. use the neutral atom instead of oxidations states.
+    species = [{Species(el, 0): amt for el, amt in comp_dict.items()}]
     coords = [[0, 0, 0]]  # Assuming a single site for simplicity; adjust as needed for your structure
 
     # Create the initial structure
     structure = Structure.from_spacegroup("Fm-3m" if crystal == "fcc" else "Im-3m", Lattice.cubic(a), species, coords)
+    logging.debug(f"Initial structure before scaling: {structure}")
+
+    # Scale the structure)
     supercell = structure * np.array(scaling_factors)
 
     return supercell
