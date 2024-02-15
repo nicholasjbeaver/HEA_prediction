@@ -62,4 +62,4 @@ if __name__ == '__main__':
 
     logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")
 
-    mcsqs_wrapper(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory='./temp', search_time=10)
+    mcsqs_wrapper(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory='./temp', instances=8, search_time=10)
