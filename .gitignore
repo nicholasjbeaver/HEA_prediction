@@ -4,4 +4,4 @@ opt.log
 opt.traj
 __pycache__
 server_input_files
-temp
+temp*

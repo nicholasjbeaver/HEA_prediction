@@ -1,4 +1,5 @@
 import logging
+import os
 
 
 # import all function from sqs_generator
@@ -14,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 @timing
 def mcsqs_wrapper(**kwargs):
-    mcsqs_caller.run_mcsqs(**kwargs)
+    return(mcsqs_caller.run_mcsqs(**kwargs))
 
 
 # main function
@@ -24,7 +25,7 @@ if __name__ == '__main__':
     materials_list = ["Al0.875CoCrFeNi", "Al0.875CoCrFeNi0.10", "CoCrFeNi", "Al4CoCrFeNi", "VCoNi"]
 
     #--------  Test composition -------------------
-    
+    '''
     for material in materials_list:
         comp = Composition(material)
         adjusted_composition = su.adjust_equiatomic_composition(comp)
@@ -41,7 +42,7 @@ if __name__ == '__main__':
 
 
     #--------  Test create_random_supercell_structure -------------------
-    '''
+
     for material in materials_list:
         comp = Composition(material)
         adjusted_composition = su.adjust_equiatomic_composition(comp)
@@ -56,10 +57,24 @@ if __name__ == '__main__':
     comp = Composition(material)
     adjusted_composition = su.adjust_equiatomic_composition(comp)
     logging.info(f"Adjusted composition: {adjusted_composition}")
-    structure, scaling_factors = su.create_disordered_structure(adjusted_composition, "fcc", total_atoms=32)
+    structure, scaling_factors = su.create_disordered_structure(adjusted_composition, "fcc", lattice_parameter=3.54, total_atoms=32)
     cutoffs = su.propose_fcc_cutoffs(structure)
+
+    # hardcode to match online version
+    cutoffs = {"2": 3.54, "3": 3.54, "4": 3.54}
     
 
     logging.info(f"Generating SQS using {structure}\n with clusters: {cutoffs}")
 
-    mcsqs_wrapper(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory='./temp', instances=8, search_time=10)
+    # make a temp directory name called temp_yyyymmddhhssmm
+    temp_dir = f"./temp_{tznow().strftime('%Y%m%d%H%M%S')}"
+    # make the directory
+    os.mkdir(temp_dir)
+
+    # run mcsqs
+
+    sqs = mcsqs_wrapper(structure=structure, clusters=cutoffs, scaling=scaling_factors, directory=temp_dir, instances=1, search_time=30)
+    
+    # print the sqs structure to a temp file in temp_dir
+    with open(f"{temp_dir}/sqs.json", "w") as f:
+        f.write(duck_str(sqs))

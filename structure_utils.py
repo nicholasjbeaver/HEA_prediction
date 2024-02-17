@@ -329,7 +329,7 @@ def create_random_supercell_structure(composition: Composition, crystal: str, to
     return supercell
 
 
-def create_disordered_structure(composition: Composition, crystal: str, total_atoms=100 ):
+def create_disordered_structure(composition: Composition, crystal: str, lattice_parameter: float|None=None, total_atoms=100 ):
     valid_crystal_types = {"fcc", "bcc"}
     crystal = crystal.lower()
     assert crystal in valid_crystal_types, f"{crystal} is not a valid crystal type. Valid crystal types are {', '.join(valid_crystal_types)}."
@@ -341,11 +341,19 @@ def create_disordered_structure(composition: Composition, crystal: str, total_at
     comp_dict = composition.get_el_amt_dict()
 
     if crystal == "fcc":
-        a = estimate_lattice_parameter_fcc(el.atomic_radius)
+        if lattice_parameter is None:
+            a = estimate_lattice_parameter_fcc(el.atomic_radius)
+        else:
+            a = lattice_parameter
+            
         scaling_factors = calculate_fcc_scaling_factors(total_atoms)
         print(f"Scaling factors for FCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
     elif crystal == "bcc":
-        a = estimate_lattice_parameter_bcc(el.atomic_radius)
+        if lattice_parameter is None:
+            a = estimate_lattice_parameter_bcc(el.atomic_radius)
+        else:
+            a = lattice_parameter
+        
         scaling_factors = calculate_bcc_scaling_factors(total_atoms)
         print(f"Scaling factors for BCC structure to achieve ~{total_atoms} atoms: {scaling_factors}")
 
@@ -355,11 +363,11 @@ def create_disordered_structure(composition: Composition, crystal: str, total_at
 
     # Create the initial structure
     structure = Structure.from_spacegroup("Fm-3m" if crystal == "fcc" else "Im-3m", Lattice.cubic(a), species, coords)
-    logging.debug(f"Initial structure before scaling: {structure}")
+    logging.debug(f"Initial structure: {structure}")
     
-    reduced_structure = structure.get_reduced_structure()
-    logging.debug(f"Reduced structure after scaling: {reduced_structure}")
+    primitive_structure = structure.get_primitive_structure()
+    logging.debug(f"Primitive structure: {primitive_structure}")
 
-    return reduced_structure, scaling_factors
+    return primitive_structure, scaling_factors
 
 
